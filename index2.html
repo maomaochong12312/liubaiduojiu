@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>白堕春醪 · 完整酿酒模拟</title>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <style>
+        /* 全局样式（整合两个页面样式） */
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            background: #2c2416;
+            background-image: radial-gradient(circle at 20% 30%, #3e2c1c, #1f180e);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', '华文楷书', 'Microsoft YaHei', '宋体', serif;
+            padding: 20px;
+            margin: 0;
+        }
+        .game-wrapper {
+            max-width: 1300px;
+            width: 100%;
+            background: #fdf1df;
+            background: linear-gradient(145deg, #fff3e2, #f7e5ce);
+            border-radius: 60px 40px 60px 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,245,200,0.8);
+            padding: 20px 25px 30px;
+            border: 1px solid #cfaf7a;
+            transition: all 0.3s;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin: 0 0 5px 0;
+            color: #5c391a;
+            letter-spacing: 4px;
+            text-shadow: 3px 3px 0 #e2cca8;
+        }
+        .sub {
+            text-align: center;
+            color: #8b6239;
+            margin-bottom: 25px;
+            font-style: italic;
+            border-bottom: 1px dashed #cfb175;
+            padding-bottom: 10px;
+        }
+        /* 选择卡片样式 */
+        .options-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 25px;
+            margin: 30px 0;
+        }
+        .card {
+            background: #fff6e8;
+            border-radius: 48px 24px 48px 24px;
+            width: 300px;
+            padding: 20px 18px;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 2px solid #e0c8a8;
+            position: relative;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.25);
+            border-color: #b78747;
+        }
+        .card.selected {
+            background: #f5e6d0;
+            border: 2px solid #b45f2b;
+            box-shadow: 0 0 0 3px rgba(180,95,43,0.3);
+        }
+        .card-title {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #5c391a;
+            border-left: 6px solid #b78747;
+            padding-left: 15px;
+            margin-bottom: 15px;
+        }
+        .card-desc {
+            font-size: 0.9rem;
+            color: #4a3724;
+            line-height: 1.5;
+            margin-top: 10px;
+            text-align: justify;
+        }
+        .quote {
+            background: #f1e5d4;
+            border-left: 4px solid #c9aa7b;
+            padding: 8px 12px;
+            margin: 12px 0;
+            font-style: italic;
+            font-size: 0.85rem;
+            color: #5e3a1c;
+            border-radius: 12px;
+        }
+        .info-panel {
+            background: #faeedb;
+            border-radius: 40px;
+            padding: 18px 24px;
+            margin: 25px 0 20px;
+            text-align: center;
+            font-size: 1rem;
+            color: #3f2b18;
+            border-left: 8px solid #c28a46;
+            line-height: 1.5;
+        }
+        .selected-info {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #b45f2b;
+        }
+        .button-group {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn {
+            background: #b47b44;
+            border: none;
+            color: #fff2e2;
+            font-weight: bold;
+            padding: 10px 28px;
+            border-radius: 40px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: inherit;
+            margin: 0 10px;
+        }
+        .btn:hover {
+            background: #9b6232;
+            transform: scale(0.97);
+        }
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #b78f5a;
+            margin-top: 20px;
+            border-top: 1px solid #e5cfae;
+            padding-top: 15px;
+        }
+        /* 酿酒模拟页面通用样式 */
+        .workspace {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: flex-start;
+            gap: 30px 20px;
+            margin: 30px 0;
+        }
+        .station {
+            background: #efdecb;
+            border-radius: 48px 24px 48px 24px;
+            padding: 20px 15px;
+            text-align: center;
+            box-shadow: inset 0 0 0 1px #fff6e8, 0 8px 18px rgba(0,0,0,0.15);
+            min-width: 180px;
+            flex: 1;
+        }
+        .station h3 {
+            margin: 0 0 12px 0;
+            font-size: 1.2rem;
+            color: #4b311a;
+            border-left: 4px solid #b78747;
+            padding-left: 12px;
+            display: inline-block;
+        }
+        .icon-area {
+            min-height: 160px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            align-items: center;
+            margin: 15px 0;
+        }
+        .drag-item {
+            cursor: grab;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 110px;
+            height: 110px;
+            background: rgba(255,245,210,0.8);
+            border-radius: 20px;
+            transition: 0.05s linear;
+            padding: 8px;
+            text-align: center;
+            font-size: 52px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .drag-item .item-text {
+            font-size: 14px;
+            display: block;
+            margin-top: 8px;
+            font-weight: normal;
+            color: #4b311a;
+        }
+        .drag-item.disabled-drag {
+            cursor: not-allowed;
+            opacity: 0.5;
+            filter: grayscale(0.2);
+        }
+        .drag-item:active {
+            cursor: grabbing;
+        }
+        .static-icon {
+            font-size: 60px;
+            margin: 10px 0;
+            display: inline-block;
+        }
+        .drop-zone {
+            background: #dac29c;
+            border-radius: 40px;
+            padding: 12px;
+            margin-top: 10px;
+            border: 2px dashed #aa7b42;
+            transition: background 0.1s;
+            font-size: 0.9rem;
+            color: #5a3a1a;
+            min-height: 80px;
+        }
+        .drop-zone.ui-droppable-active {
+            background: #f3e1be;
+            border-color: #c4842c;
+        }
+        .time-badge {
+            font-size: 1.1rem;
+            background: #d9b27c;
+            display: inline-block;
+            padding: 6px 15px;
+            border-radius: 40px;
+            margin-top: 8px;
+            color: #2c1a0a;
+        }
+        .hide {
+            display: none;
+        }
+        .clickable-icon {
+            cursor: pointer;
+            transition: transform 0.05s;
+        }
+        .clickable-icon:active {
+            transform: scale(0.95);
+        }
+        /* 桑落酒专用样式 */
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .quantity-btn {
+            background: #c9aa7b;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+        }
+        .quantity-btn:active {
+            transform: scale(0.9);
+        }
+        .quantity-number {
+            font-size: 1.2rem;
+            font-weight: bold;
+            min-width: 40px;
+            text-align: center;
+        }
+        .added-badge {
+            margin-top: 5px;
+            font-size: 0.75rem;
+            color: #2d6a4f;
+        }
+        .water-mutual {
+            font-size: 0.8rem;
+            color: #9e6b3e;
+            margin-top: 5px;
+        }
+        /* 春酒模拟器中容量说明 */
+        .capacity-note {
+            font-size: 0.75rem;
+            color: #9e6b3e;
+            margin-top: 4px;
+        }
+        .jiao-ban {
+            display: inline-block;
+            cursor: pointer;
+            background: #c9aa7b;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .jiao-ban:active {
+            transform: scale(0.95);
+        }
+        .status-tag {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 10px;
+            padding: 5px;
+            border-radius: 30px;
+            display: inline-block;
+        }
+        .success {
+            color: #2d6a4f;
+            background: #d8f3dc;
+        }
+        .bitter {
+            color: #9d0208;
+            background: #ffddd6;
+        }
+        @media (max-width: 800px) {
+            .drag-item { width: 85px; height: 85px; font-size: 40px; }
+            .drag-item .item-text { font-size: 11px; }
+            .card { width: 260px; padding: 15px; }
+            .card-title { font-size: 1.3rem; }
+            .station { min-width: 140px; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-wrapper">
+    <!-- ================= 选择酿酒类型页面（初始显示） ================= -->
+    <div id="selectionPage">
+        <h1>🍶 白堕春醪 · 酿酒第二关 🧂</h1>
+        <div class="sub">《齐民要术》与《洛阳伽蓝记》中的酿酒方法选择</div>
+
+        <div class="options-container">
+            <div class="card" data-method="hedong">
+                <div class="card-title">🍷 河東頤白酒法</div>
+                <div class="card-desc">
+                    <div class="quote">《洛阳伽蓝记》云：“季夏六月，時暑赫晞，以甖貯酒，暴於日中，經一旬，其酒味不動，飲之香美，醉而經月不醒。”</div>
+                    <div>范祥雍先生《洛阳伽蓝记校注》认为此与《齐民要术》“河東頤白酒法”相合，只是酿酒时间稍有不同（《齐民要术》言三五日，《洛阳伽蓝记》言一旬）。</div>
+                </div>
+            </div>
+            <div class="card" data-method="sangluo">
+                <div class="card-title">🍇 桑落酒</div>
+                <div class="card-desc">
+                    <div class="quote">《齐民要术》中“大州白堕麴方饼法”后紧跟“作桑落酒法”，结合《水经注》记述，刘堕所酿之酒为桑落酒。</div>
+                    <div>桑落时节酿造，酒味醇美，为古代名酒之一。</div>
+                </div>
+            </div>
+            <div class="card" data-method="chunjiu">
+                <div class="card-title">🌸 春酒 (春醪)</div>
+                <div class="card-desc">
+                    <div class="quote">《洛阳伽蓝记》云：“不畏張弓拔刀，唯畏白墮春醪。”春醪即春酒。</div>
+                    <div>《齐民要术》中专门有“春酒”篇介绍春酒制法，春季酿造，风味独特。</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            📜 文献考辨<br>
+            由于《洛阳伽蓝记》中有自相矛盾之处，与《齐民要术》《水经注》中记述也有不同，故难以确定刘白堕的酿酒方法具体如何。<br>
+            但根据《洛阳伽蓝记》与《齐民要术》中相契合的表述，“河東頤白酒法”是可能性最大的酿酒方法。另外，也有可能刘白堕一年酿酒不止一季，会随时节改变酿酒方法，不同季节供应的酒有所不同。
+        </div>
+
+        <div class="selected-info" id="selectedDisplay">⚙️ 尚未选择酿酒类型，请点击上方任意卡片进行选择。</div>
+
+        <div class="button-group">
+            <button class="btn" id="confirmBtn">✅ 确认选择</button>
+            <button class="btn" id="resetBtn">🔄 重置选择</button>
+        </div>
+        <footer>依据《洛阳伽蓝记》《齐民要术》《水经注》等文献 | 点击卡片可选择一种酿酒方法</footer>
+    </div>
+
+    <!-- ================= 河东颐白酒法模拟页面（初始隐藏） ================= -->
+    <div id="hedongPage" style="display: none;">
+        <h1>🍶 河东颐白酒法 · 古法酿造 🧂</h1>
+        <div class="sub">《齐民要术》与《洛阳伽蓝记》相合的酿酒技艺（含捏碎&下酿）</div>
+        <div class="info-panel" style="margin-bottom:10px;">
+            📜 原文依据：《齐民要术·河东颐白酒法》记载：“河东颐白酒法：六月取河水，煮之，待冷，下麴。……暴於日中，经一旬，其酒不动。”<br>
+            《洛阳伽蓝记》：“季夏六月，时暑赫晞，以罂贮酒，暴於日中，经一旬，其酒味不动，饮之香美，醉而经月不醒。”
+        </div>
+
+        <!-- 第一阶段：甘水煮汤 -->
+        <div id="stage1">
+            <div class="workspace">
+                <div class="station">
+                    <h3>💧 甘 水</h3>
+                    <div class="icon-area" id="waterAreaStage1">
+                        <div class="drag-item" data-type="sweetWater">💧<span class="item-text">甘水</span></div>
+                    </div>
+                </div>
+                <div class="station">
+                    <h3>🍲 煮 锅</h3>
+                    <div class="static-icon">🍲</div>
+                    <div class="drop-zone" id="cookPotZone">将甘水拖到这里 → 煮汤</div>
+                    <div class="icon-area" id="cookResultArea"></div>
+                </div>
+                <div class="station">
+                    <h3>🏺 盆 子</h3>
+                    <div class="static-icon">🏺</div>
+                    <div class="drop-zone" id="basinZone">将汤汁拖到这里 → 盛放</div>
+                    <div class="icon-area" id="basinArea"></div>
+                </div>
+            </div>
+            <div class="info-panel" id="stage1Msg">
+                📜 步骤一：取甘水，放入锅中，以中火煮至熟。出现太阳图标表示“日中”水沸。
+            </div>
+        </div>
+
+        <!-- 第二阶段：黍米处理、酒曲浸泡捏碎、下酿入瓮 -->
+        <div id="stage2" style="display: none;">
+            <div class="workspace">
+                <div class="station">
+                    <h3>🌾 黍 米</h3>
+                    <div class="icon-area" id="milletArea">
+                        <div class="drag-item" data-type="rawMillet">🌾<span class="item-text">黍米</span></div>
+                    </div>
+                </div>
+                <div class="station">
+                    <h3>💧 清 水</h3>
+                    <div class="icon-area" id="cleanWaterArea">
+                        <div class="drag-item" data-type="cleanWater">💧<span class="item-text">清水</span></div>
+                    </div>
+                </div>
+                <div class="station">
+                    <h3>🍶 酒 麴</h3>
+                    <div class="icon-area" id="quArea">
+                        <div class="drag-item" data-type="rawQu">🍶<span class="item-text">酒麴</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="workspace">
+                <div class="station">
+                    <h3>🔥 蒸 锅</h3>
+                    <div class="static-icon">🔥</div>
+                    <div class="drop-zone" id="steamerZone">将浸泡后的黍米拖到这里 → 蒸熟</div>
+                    <div class="icon-area" id="steamerResultArea"></div>
+                </div>
+                <div class="station">
+                    <h3>🧺 席 子</h3>
+                    <div class="static-icon">🧺</div>
+                    <div class="drop-zone" id="matZone">将熟米拖到这里 → 晾凉</div>
+                    <div class="icon-area" id="matResultArea"></div>
+                </div>
+                <div class="station">
+                    <h3>⏳ 时 辰</h3>
+                    <div id="timeSign" class="time-badge">🌜 夜半 (子时)</div>
+                </div>
+            </div>
+            <div class="workspace">
+                <div class="station">
+                    <h3>🖐️ 捏碎酒曲</h3>
+                    <div class="static-icon">🖐️</div>
+                    <div class="drop-zone" id="crushDropZone">将浸泡后的酒曲拖到这里 → 准备捏碎</div>
+                    <div class="icon-area" id="crushWaitingArea"></div>
+                    <div id="crushReadyStatus" style="margin-top: 8px;">未放入</div>
+                    <div class="clickable-icon" id="crushButton" style="width:50px; background:#b47b44; color:white; border-radius:40px; padding:6px; margin-top:6px; cursor:pointer; display: none;">捏碎</div>
+                </div>
+                <div class="station">
+                    <h3>🏺 瓮 (下酿)</h3>
+                    <div class="static-icon">🏺</div>
+                    <div class="drop-zone" id="jarZone">将碎酒曲和熟米拖到这里 → 下酿</div>
+                    <div class="icon-area" id="jarArea"></div>
+                    <div id="jarProgress" style="margin-top: 8px;">等待入瓮</div>
+                </div>
+            </div>
+            <div class="info-panel" id="stage2Msg">
+                📜 步骤二：① 黍米拖到清水浸泡 → ② 浸泡米拖到蒸锅（夜半/四更）→ ③ 酒曲拖到清水浸泡 → ④ 将浸泡后的酒曲拖入捏碎区 → ⑤ 点击捏碎 → ⑥ 将碎酒曲和晾凉的熟米分别拖入瓮中（两者都放入后完成）
+            </div>
+        </div>
+
+        <div class="info-panel" id="globalMsg" style="margin-top: 10px;">☀️ 请按照提示顺序操作，每一步不可逆。</div>
+        <div style="text-align: center;">
+            <button class="btn" id="resetHedongBtn">🔄 重置酿造</button>
+            <button class="btn" id="completeHedongBtn" style="background:#7d5d3a; display:none;">🏆 酿造完成 🏆</button>
+            <button class="btn" id="backToSelectionFromHedong">◀ 返回选择页面</button>
+        </div>
+        <footer>依据《齐民要术·河东颐白酒法》及《洛阳伽蓝记》记载 | 模拟刘白堕酿酒核心工序</footer>
+    </div>
+
+    <!-- ================= 桑落酒模拟页面（初始隐藏） ================= -->
+    <div id="sangluoPage" style="display: none;">
+        <h1>🍇 桑落酒 · 古法酿造 🧂</h1>
+        <div class="sub">《齐民要术》：「麴末一斗，熟米二斗。其米令精細，淘淨，水清爲度。用熟水一斗，限三酘便止。」</div>
+        <div class="info-panel" style="margin-bottom:10px;">
+            📜 原文依据：《齐民要术·作桑落酒法》：“麴末一斗，熟米二斗。其米令精细，淘净，水清为度。用熟水一斗，限三酘便止。清麴候向发便酘，不得失时。勿令小儿人狗食黍。作春酒，以冷水渍麴，馀同冬酒。”<br>
+            结合《水经注》记载，刘堕所酿之酒即为桑落酒。
+        </div>
+
+        <div class="workspace">
+            <div class="station">
+                <h3>🍶 酒麴粉末</h3>
+                <div class="icon-area">
+                    <div class="drag-item" data-type="quPowder" id="quDrag">🍶<span class="item-text">麴末</span></div>
+                    <div class="quantity-control">
+                        <button class="quantity-btn" id="quMinus">-</button>
+                        <span class="quantity-number" id="quAmount">0</span>
+                        <button class="quantity-btn" id="quPlus">+</button>
+                    </div>
+                    <div class="added-badge" id="quAdded"></div>
+                </div>
+            </div>
+            <div class="station">
+                <h3>🍚 熟 米</h3>
+                <div class="icon-area">
+                    <div class="drag-item" data-type="cookedRice" id="riceDrag">🍚<span class="item-text">熟米</span></div>
+                    <div class="quantity-control">
+                        <button class="quantity-btn" id="riceMinus">-</button>
+                        <span class="quantity-number" id="riceAmount">0</span>
+                        <button class="quantity-btn" id="ricePlus">+</button>
+                    </div>
+                    <div class="added-badge" id="riceAdded"></div>
+                </div>
+            </div>
+            <div class="station">
+                <h3>♨️ 熟 水</h3>
+                <div class="icon-area">
+                    <div class="drag-item" data-type="cookedWater" id="cookedWaterDrag">♨️<span class="item-text">熟水</span></div>
+                    <div class="quantity-control">
+                        <button class="quantity-btn" id="cwMinus">-</button>
+                        <span class="quantity-number" id="cwAmount">0</span>
+                        <button class="quantity-btn" id="cwPlus">+</button>
+                    </div>
+                    <div class="added-badge" id="cwAdded"></div>
+                </div>
+            </div>
+            <div class="station">
+                <h3>❄️ 冷 水</h3>
+                <div class="icon-area">
+                    <div class="drag-item" data-type="coldWater" id="coldWaterDrag">❄️<span class="item-text">冷水</span></div>
+                    <div class="quantity-control">
+                        <button class="quantity-btn" id="clMinus">-</button>
+                        <span class="quantity-number" id="clAmount">0</span>
+                        <button class="quantity-btn" id="clPlus">+</button>
+                    </div>
+                    <div class="added-badge" id="clAdded"></div>
+                </div>
+                <div class="water-mutual">※ 熟水与冷水只能选其一</div>
+            </div>
+            <div class="station">
+                <h3>🏺 瓮 (下酿)</h3>
+                <div class="drop-zone" id="jarDropZoneSangluo">
+                    <span class="static-icon">🏺</span>
+                    <div>将原料拖入此处</div>
+                    <div id="jarStatus" style="margin-top: 10px; font-weight: bold;"></div>
+                    <div id="jarDetail" style="font-size:0.8rem; margin-top:5px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel" id="gameMsgSangluo">
+            📜 配比要求：麴末 : 熟米 : 水 = 1 : 2 : 1 (斗)<br>
+            熟水→冬酒，冷水→春酒。先调节各原料数量，再分别拖拽入瓮。每种原料只能加入一次，不可重复。
+        </div>
+        <div style="text-align: center;">
+            <button class="btn" id="resetSangluoBtn">🔄 重置</button>
+            <button class="btn" id="completeSangluoBtn" style="background:#7d5d3a; display:none;">🏆 酿造完成 🏆</button>
+            <button class="btn" id="backToSelectionFromSangluo">◀ 返回选择页面</button>
+        </div>
+        <footer>依据《齐民要术·作桑落酒法》 | 比例精确，限三酘即指此比例</footer>
+    </div>
+
+    <!-- ================= 春酒模拟页面（来自第二段程序，完整保留） ================= -->
+    <div id="chunjiuPage" style="display: none;">
+        <h1>🌸 春酒 · 古法酿造 🧂</h1>
+        <div class="sub">《齐民要术·春酒法》：「治麴欲淨，剉麴欲細，曝麴欲乾……多收河水，井水若鹹，不堪淘米……大率一斗麴，殺米七斗，用水四斗……十七石甕，惟得釀十石米，多則溢出。」</div>
+
+        <!-- 第一阶段：淘米浸曲 -->
+        <div id="stage1Chun">
+            <div class="workspace">
+                <div class="station">
+                    <h3>🍶 酒 麴</h3>
+                    <div class="icon-area">
+                        <div class="drag-item" data-type="rawQu" id="quItemChun">🍶<span class="item-text">晒乾麴末</span></div>
+                    </div>
+                </div>
+                <div class="station">
+                    <h3>🌾 米</h3>
+                    <div class="icon-area">
+                        <div class="drag-item" data-type="rawMillet" id="riceItemChun">🌾<span class="item-text">米</span></div>
+                    </div>
+                </div>
+                <div class="station">
+                    <h3>💧 春 水</h3>
+                    <div class="static-icon">💧</div>
+                    <div class="drop-zone" id="waterDropZoneChun">将酒麴或米拖到这里 → 淘米/浸曲</div>
+                    <div class="icon-area" id="waterResultAreaChun"></div>
+                </div>
+            </div>
+            <div class="info-panel" id="stage1MsgChun">📜 第一步：将酒麴和米分别拖入春水中，表示淘米与浸泡酒麴。</div>
+        </div>
+
+        <!-- 第二阶段：投米发酵 -->
+        <div id="stage2Chun" style="display: none;">
+            <div class="info-panel">📜 七八天后，酒麴开始发酵。按照古法依次投米，每次投米后需等待“明早”并搅拌。</div>
+            <div class="workspace">
+                <div class="station">
+                    <h3>🌾 米 料</h3>
+                    <div class="icon-area" id="riceStockAreaChun"></div>
+                </div>
+                <div class="station">
+                    <h3>🏺 瓮 (容量十七石)</h3>
+                    <div class="static-icon">🏺</div>
+                    <div class="drop-zone" id="jarDropZoneChun">将米拖入瓮中 → 投米</div>
+                    <div id="jarCapacityChun" style="margin-top: 8px;">已投米: <span id="totalRiceChun">0</span> 斗 / 最多可投 100 斗 (十石)</div>
+                    <div class="capacity-note">※ 若九石后味苦，亦可超出十石</div>
+                    <div id="fermentStatusChun" style="margin-top: 8px;"></div>
+                </div>
+                <div class="station">
+                    <h3>⏳ 工 序</h3>
+                    <div id="stirAreaChun" style="display: none;">
+                        <div class="static-icon">🌅</div>
+                        <div class="jiao-ban" id="stirBtnChun">🌾 搅拌 (明早)</div>
+                    </div>
+                    <div id="tasteStatusAreaChun" style="margin-top: 15px;">
+                        <div id="tasteLabelChun" class="status-tag"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="info-panel" id="stage2MsgChun">投米顺序：二石 → 十七斗 → 十四斗 → 十一斗 → 十斗 → 九斗 → 九斗。每次投米后需点击“明早·搅拌”按钮。</div>
+        </div>
+
+        <div style="text-align: center;">
+            <button class="btn" id="resetBtnChun">🔄 重置</button>
+            <button class="btn" id="completeBtnChun" style="background:#7d5d3a; display:none;">🏆 酿造完成 🏆</button>
+            <button class="btn" id="backToSelectionFromChunjiu">◀ 返回选择页面</button>
+        </div>
+        <footer>依据《齐民要术·春酒法》 | 模拟投米、搅拌、回味补救全过程</footer>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+<script>
+$(function() {
+    // ================= 选择页面逻辑（整合跳转） =================
+    let selectedMethod = null;
+    const $selectionPage = $('#selectionPage');
+    const $hedongPage = $('#hedongPage');
+    const $sangluoPage = $('#sangluoPage');
+    const $chunjiuPage = $('#chunjiuPage');
+    const cards = $('.card');
+    const confirmBtn = $('#confirmBtn');
+    const resetSelectBtn = $('#resetBtn');
+    const selectedDisplay = $('#selectedDisplay');
+
+    function clearSelection() { cards.removeClass('selected'); }
+    function updateSelectedDisplay() {
+        if (selectedMethod === 'hedong') selectedDisplay.html('✅ 当前选中：<strong>河東頤白酒法</strong>（可能性最大的刘白堕酿酒方法）。点击确认进入模拟。');
+        else if (selectedMethod === 'sangluo') selectedDisplay.html('✅ 当前选中：<strong>桑落酒</strong>（《水经注》记载刘堕所酿之酒）。点击确认进入模拟。');
+        else if (selectedMethod === 'chunjiu') selectedDisplay.html('✅ 当前选中：<strong>春酒（春醪）</strong>（《洛阳伽蓝记》中“白堕春醪”）。点击确认进入模拟。');
+        else selectedDisplay.html('⚙️ 尚未选择酿酒类型，请点击上方任意卡片进行选择。');
+    }
+    cards.on('click', function() {
+        selectedMethod = $(this).data('method');
+        clearSelection();
+        $(this).addClass('selected');
+        updateSelectedDisplay();
+    });
+    confirmBtn.on('click', function() {
+        if (!selectedMethod) { alert('请先选择一种酿酒方法。'); return; }
+        if (selectedMethod === 'hedong') {
+            $selectionPage.hide();
+            $hedongPage.show();
+            resetHedongSimulation();
+        } else if (selectedMethod === 'sangluo') {
+            $selectionPage.hide();
+            $sangluoPage.show();
+            resetSangluoSimulation();
+        } else if (selectedMethod === 'chunjiu') {
+            $selectionPage.hide();
+            $chunjiuPage.show();
+            // 重置春酒模拟器状态（函数在春酒脚本中定义，此处调用）
+            if (typeof resetChunjiuGame === 'function') resetChunjiuGame();
+        }
+    });
+    resetSelectBtn.on('click', function() { clearSelection(); selectedMethod = null; updateSelectedDisplay(); });
+
+    // ================= 河东颐白酒法逻辑（原样） =================
+    let stage1Completed = false, waterCooked = false, soupInBasin = false;
+    let milletWashed = false, milletSteamed = false, quSoaked = false, quPlacedForCrush = false, quCrushed = false, milletCooled = false, quInJar = false, riceInJar = false, allDone = false;
+    const $stage1 = $('#stage1'), $stage2 = $('#stage2'), $globalMsg = $('#globalMsg'), $resetHedongBtn = $('#resetHedongBtn'), $completeHedongBtn = $('#completeHedongBtn'), $backToSelectionFromHedong = $('#backToSelectionFromHedong');
+    const $waterAreaStage1 = $('#waterAreaStage1'), $cookPotZone = $('#cookPotZone'), $cookResultArea = $('#cookResultArea'), $basinZone = $('#basinZone'), $basinArea = $('#basinArea'), $stage1Msg = $('#stage1Msg');
+    const $milletArea = $('#milletArea'), $cleanWaterArea = $('#cleanWaterArea'), $quArea = $('#quArea'), $steamerZone = $('#steamerZone'), $steamerResultArea = $('#steamerResultArea'), $matZone = $('#matZone'), $matResultArea = $('#matResultArea'), $timeSign = $('#timeSign'), $stage2Msg = $('#stage2Msg');
+    const $crushDropZone = $('#crushDropZone'), $crushWaitingArea = $('#crushWaitingArea'), $crushReadyStatus = $('#crushReadyStatus'), $crushButton = $('#crushButton'), $jarZone = $('#jarZone'), $jarArea = $('#jarArea'), $jarProgress = $('#jarProgress');
+
+    function refreshDraggable() { $('.drag-item').draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100 }); }
+    function updateCompletion() { if (quInJar && riceInJar && !allDone) { allDone = true; $completeHedongBtn.show(); $globalMsg.html('✨ 河东颐白酒酿造流程模拟完成！碎酒曲和熟米均已入瓮，可进行后续发酵。 ✨'); $stage2Msg.html('🎉 所有步骤已完成！点击下方“酿造完成”按钮。'); } }
+    $crushButton.on('click', function() {
+        if (!quPlacedForCrush) { $stage2Msg.html('❌ 请先将浸泡酒曲拖入捏碎区。'); return; }
+        if (quCrushed) { $stage2Msg.html('❌ 酒曲已经捏碎过了。'); return; }
+        quCrushed = true; $crushWaitingArea.empty(); $crushReadyStatus.html('✅ 已捏碎');
+        $crushWaitingArea.append(`<div class="drag-item" data-type="crushedQu">🍶💥<span class="item-text">碎酒曲</span></div>`);
+        $stage2Msg.html('✅ 酒曲已捏碎。现在将碎酒曲和晾凉的熟米分别拖入瓮中。'); refreshDraggable(); updateCompletion();
+    });
+    function bindDroppables() {
+        $cookPotZone.droppable({ accept: '#stage1 .drag-item[data-type="sweetWater"]', drop: function(e,ui) { if (stage1Completed || waterCooked) { $globalMsg.html('❌ 已经煮过汤汁了，请重置。'); return; } ui.draggable.remove(); waterCooked = true; $cookResultArea.empty(); $cookResultArea.append(`<div class="static-icon">☀️</div><div class="drag-item" data-type="cookedSoup">🥣<span class="item-text">汤汁</span></div>`); $stage1Msg.html('✅ 甘水已煮熟，出现太阳图标（日中）。现在可将汤汁拖入盆中。'); refreshDraggable(); } });
+        $basinZone.droppable({ accept: '#stage1 .drag-item[data-type="cookedSoup"]', drop: function(e,ui) { if (stage1Completed || soupInBasin) { $globalMsg.html('❌ 已经盛放过汤汁了。'); return; } ui.draggable.remove(); soupInBasin = true; $basinArea.empty(); $basinArea.append('<div class="static-icon">🥣✨</div><div class="item-text">汤汁已盛</div>'); $stage1Msg.html('🎉 汤汁已存入盆中。即将进入第二阶段：黍米处理与酒曲酿造。'); stage1Completed = true; $stage1.hide(); $stage2.show(); $globalMsg.html('🌙 进入第二阶段：夜半淘米、蒸米、处理酒曲。'); refreshDraggable(); } });
+        $cleanWaterArea.droppable({ accept: '#stage2 .drag-item[data-type="rawMillet"], #stage2 .drag-item[data-type="rawQu"]', drop: function(e,ui) { let type = ui.draggable.attr('data-type'); if (type === 'rawMillet') { if (milletWashed) { $stage2Msg.html('❌ 黍米已经浸泡过了。'); return; } ui.draggable.remove(); milletWashed = true; $cleanWaterArea.empty(); $cleanWaterArea.append(`<div class="drag-item" data-type="soakedMillet">🌾💧<span class="item-text">浸泡米</span></div>`); $stage2Msg.html('✅ 黍米已淘洗并浸泡。夜半时分，将浸泡米拖入蒸锅。'); refreshDraggable(); $timeSign.html('🌙 夜半 (子时) · 宜蒸米'); } else if (type === 'rawQu') { if (quSoaked) { $stage2Msg.html('❌ 酒曲已经浸泡过了。'); return; } ui.draggable.remove(); quSoaked = true; $cleanWaterArea.append(`<div class="drag-item" data-type="soakedQu">🍶💧<span class="item-text">浸泡酒曲</span></div>`); $stage2Msg.html('✅ 酒曲已用清水浸泡。现在将浸泡酒曲拖到捏碎区。'); refreshDraggable(); } } });
+        $crushDropZone.droppable({ accept: '#stage2 .drag-item[data-type="soakedQu"]', drop: function(e,ui) { if (quPlacedForCrush) { $stage2Msg.html('❌ 已经放入捏碎区，请直接捏碎。'); return; } ui.draggable.remove(); quPlacedForCrush = true; $crushWaitingArea.empty(); $crushWaitingArea.append('<div class="static-icon">🍶</div><div class="item-text">酒曲已就位</div>'); $crushReadyStatus.html('✅ 已放入，点击“捏碎”按钮'); $crushButton.show(); $stage2Msg.html('✅ 浸泡酒曲已放入捏碎区。点击“捏碎”按钮将其粉碎。'); refreshDraggable(); } });
+        $steamerZone.droppable({ accept: '#stage2 .drag-item[data-type="soakedMillet"]', drop: function(e,ui) { if (milletSteamed) { $stage2Msg.html('❌ 已经蒸过米了。'); return; } ui.draggable.remove(); milletSteamed = true; $timeSign.html('⏰ 四更天 · 米已成饭'); $steamerResultArea.empty(); $steamerResultArea.append(`<div class="drag-item" data-type="cookedMillet">🍚<span class="item-text">熟米</span></div>`); $stage2Msg.html('✅ 黍米已蒸熟（四更）。将熟米拖到席子上晾凉。'); refreshDraggable(); } });
+        $matZone.droppable({ accept: '#stage2 .drag-item[data-type="cookedMillet"]', drop: function(e,ui) { if (milletCooled) { $stage2Msg.html('❌ 已经晾凉过米了。'); return; } ui.draggable.remove(); milletCooled = true; $matResultArea.empty(); $matResultArea.append('<div class="static-icon">🍚🧺</div><div class="item-text">晾凉熟米</div>'); $matResultArea.append(`<div class="drag-item" data-type="cooledRice">🍚❄️<span class="item-text">晾凉熟米</span></div>`); $stage2Msg.html('✅ 米已晾凉。现在将晾凉的熟米和碎酒曲分别拖入瓮中。'); refreshDraggable(); updateCompletion(); } });
+        $jarZone.droppable({ accept: '#stage2 .drag-item[data-type="crushedQu"], #stage2 .drag-item[data-type="cooledRice"]', drop: function(e,ui) { let type = ui.draggable.attr('data-type'); if (type === 'crushedQu') { if (quInJar) { $stage2Msg.html('❌ 碎酒曲已经放入瓮中。'); return; } ui.draggable.remove(); quInJar = true; $jarProgress.html('🍶 碎酒曲已入瓮'); $jarArea.append('<div class="static-icon">🍶✅</div>'); $stage2Msg.html('✅ 碎酒曲已入瓮。还需要将晾凉熟米放入瓮中。'); refreshDraggable(); updateCompletion(); } else if (type === 'cooledRice') { if (riceInJar) { $stage2Msg.html('❌ 熟米已经放入瓮中。'); return; } ui.draggable.remove(); riceInJar = true; $jarProgress.html('🍚 熟米已入瓮'); $jarArea.append('<div class="static-icon">🍚✅</div>'); $stage2Msg.html('✅ 熟米已入瓮。还需要将碎酒曲放入瓮中。'); refreshDraggable(); updateCompletion(); } } });
+    }
+    function resetHedongSimulation() {
+        stage1Completed = false; waterCooked = false; soupInBasin = false; milletWashed = false; milletSteamed = false; quSoaked = false; quPlacedForCrush = false; quCrushed = false; milletCooled = false; quInJar = false; riceInJar = false; allDone = false;
+        $completeHedongBtn.hide(); $crushButton.hide(); $stage1.show(); $stage2.hide();
+        $waterAreaStage1.empty(); $waterAreaStage1.append('<div class="drag-item" data-type="sweetWater">💧<span class="item-text">甘水</span></div>'); $cookResultArea.empty(); $basinArea.empty();
+        $milletArea.empty(); $milletArea.append('<div class="drag-item" data-type="rawMillet">🌾<span class="item-text">黍米</span></div>'); $cleanWaterArea.empty(); $cleanWaterArea.append('<div class="drag-item" data-type="cleanWater">💧<span class="item-text">清水</span></div>'); $quArea.empty(); $quArea.append('<div class="drag-item" data-type="rawQu">🍶<span class="item-text">酒麴</span></div>'); $steamerResultArea.empty(); $matResultArea.empty(); $crushWaitingArea.empty(); $crushReadyStatus.html('未放入'); $jarArea.empty(); $jarProgress.html('等待入瓮'); $timeSign.html('🌜 夜半 (子时)');
+        $stage1Msg.html('📜 步骤一：取甘水，放入锅中，以中火煮至熟。出现太阳图标表示“日中”水沸。'); $stage2Msg.html('📜 步骤二：① 黍米拖到清水浸泡 → ② 浸泡米拖到蒸锅（夜半/四更）→ ③ 酒曲拖到清水浸泡 → ④ 将浸泡后的酒曲拖入捏碎区 → ⑤ 点击捏碎 → ⑥ 将碎酒曲和晾凉的熟米分别拖入瓮中（两者都放入后完成）'); $globalMsg.html('☀️ 请按照提示顺序操作，每一步不可逆。');
+        bindDroppables(); refreshDraggable();
+    }
+    $completeHedongBtn.on('click', function() { if (allDone) alert('“明日便熟，押出之，酒氣香美，乃勝桑落時作者。”\n恭喜成功使用白堕麴，配合河東頤白酒法酿成美酒！根据《齐民要术》记载，河東頤白酒在六月可以存放三五日；根据《洛阳伽蓝记》，刘白堕制成的酒甚至可以在太阳下暴晒一旬而味道不变！'); else alert('尚未完成所有步骤，请确保已将碎酒曲和熟米都放入瓮中。'); });
+    $resetHedongBtn.on('click', resetHedongSimulation);
+    $backToSelectionFromHedong.on('click', function() { $hedongPage.hide(); $selectionPage.show(); clearSelection(); selectedMethod = null; updateSelectedDisplay(); });
+
+    // ================= 桑落酒模拟页面逻辑 =================
+    let quAmount = 0, riceAmount = 0, cookedWaterAmount = 0, coldWaterAmount = 0;
+    let quAdded = false, riceAdded = false, waterAdded = false, waterType = null;
+    const $quAmount = $('#quAmount'), $riceAmount = $('#riceAmount'), $cwAmount = $('#cwAmount'), $clAmount = $('#clAmount');
+    const $quDrag = $('#quDrag'), $riceDrag = $('#riceDrag'), $cookedWaterDrag = $('#cookedWaterDrag'), $coldWaterDrag = $('#coldWaterDrag');
+    const $jarDropZoneSangluo = $('#jarDropZoneSangluo'), $jarStatus = $('#jarStatus'), $jarDetail = $('#jarDetail'), $gameMsgSangluo = $('#gameMsgSangluo'), $resetSangluoBtn = $('#resetSangluoBtn'), $completeSangluoBtn = $('#completeSangluoBtn'), $backToSelectionFromSangluo = $('#backToSelectionFromSangluo');
+
+    function updateQuantities() { $quAmount.text(quAmount); $riceAmount.text(riceAmount); $cwAmount.text(cookedWaterAmount); $clAmount.text(coldWaterAmount); }
+    function updateDragStatus() {
+        $quDrag.toggleClass('disabled-drag', quAdded).draggable(quAdded ? 'disable' : 'enable');
+        $riceDrag.toggleClass('disabled-drag', riceAdded).draggable(riceAdded ? 'disable' : 'enable');
+        if (waterAdded) { $cookedWaterDrag.addClass('disabled-drag').draggable('disable'); $coldWaterDrag.addClass('disabled-drag').draggable('disable'); }
+        else { $cookedWaterDrag.removeClass('disabled-drag').draggable('enable'); $coldWaterDrag.removeClass('disabled-drag').draggable('enable'); }
+        if (quAmount === 0) $quDrag.draggable('disable'); if (riceAmount === 0) $riceDrag.draggable('disable'); if (cookedWaterAmount === 0) $cookedWaterDrag.draggable('disable'); if (coldWaterAmount === 0) $coldWaterDrag.draggable('disable');
+        if (!quAdded && quAmount > 0) $quDrag.draggable('enable'); if (!riceAdded && riceAmount > 0) $riceDrag.draggable('enable'); if (!waterAdded && cookedWaterAmount > 0) $cookedWaterDrag.draggable('enable'); if (!waterAdded && coldWaterAmount > 0) $coldWaterDrag.draggable('enable');
+    }
+    function initDraggableSangluo() {
+        $quDrag.draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100, disabled: true });
+        $riceDrag.draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100, disabled: true });
+        $cookedWaterDrag.draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100, disabled: true });
+        $coldWaterDrag.draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100, disabled: true });
+        updateDragStatus();
+    }
+    $jarDropZoneSangluo.droppable({
+        accept: '.drag-item:not(.disabled-drag)',
+        drop: function(e, ui) {
+            let $dragged = ui.draggable, type = $dragged.attr('data-type');
+            if (type === 'quPowder') {
+                if (quAdded) { $gameMsgSangluo.html('❌ 酒麴粉末已经加入过了，不可重复。'); return; }
+                if (quAmount === 0) { $gameMsgSangluo.html('❌ 请先增加酒麴粉末的数量（至少1斗）。'); return; }
+                quAdded = true; $('#quAdded').text('✅ 已加入 ' + quAmount + ' 斗'); $gameMsgSangluo.html(`✅ 已加入酒麴粉末 ${quAmount} 斗。`);
+            } else if (type === 'cookedRice') {
+                if (riceAdded) { $gameMsgSangluo.html('❌ 熟米已经加入过了，不可重复。'); return; }
+                if (riceAmount === 0) { $gameMsgSangluo.html('❌ 请先增加熟米的数量（至少1斗）。'); return; }
+                riceAdded = true; $('#riceAdded').text('✅ 已加入 ' + riceAmount + ' 斗'); $gameMsgSangluo.html(`✅ 已加入熟米 ${riceAmount} 斗。`);
+            } else if (type === 'cookedWater') {
+                if (waterAdded) { $gameMsgSangluo.html('❌ 已经加入过水了，不能同时使用熟水和冷水。'); return; }
+                if (cookedWaterAmount === 0) { $gameMsgSangluo.html('❌ 请先增加熟水的数量（至少1斗）。'); return; }
+                waterAdded = true; waterType = 'cooked'; $('#cwAdded').text('✅ 已加入 ' + cookedWaterAmount + ' 斗 (冬酒)'); $gameMsgSangluo.html(`✅ 已加入熟水 ${cookedWaterAmount} 斗，将酿成冬酒。`);
+            } else if (type === 'coldWater') {
+                if (waterAdded) { $gameMsgSangluo.html('❌ 已经加入过水了，不能同时使用熟水和冷水。'); return; }
+                if (coldWaterAmount === 0) { $gameMsgSangluo.html('❌ 请先增加冷水的数量（至少1斗）。'); return; }
+                waterAdded = true; waterType = 'cold'; $('#clAdded').text('✅ 已加入 ' + coldWaterAmount + ' 斗 (春酒)'); $gameMsgSangluo.html(`✅ 已加入冷水 ${coldWaterAmount} 斗，将酿成春酒。`);
+            } else return;
+            if (type === 'quPowder') $('#quMinus, #quPlus').prop('disabled', true);
+            else if (type === 'cookedRice') $('#riceMinus, #ricePlus').prop('disabled', true);
+            else if (type === 'cookedWater') $('#cwMinus, #cwPlus').prop('disabled', true);
+            else if (type === 'coldWater') $('#clMinus, #clPlus').prop('disabled', true);
+            updateDragStatus(); updateJarDisplay();
+            if (quAdded && riceAdded && waterAdded) checkRatioAndComplete();
+        }
+    });
+    function updateJarDisplay() { let html = ''; if (quAdded) html += `🍶 麴末 ${quAmount}斗<br>`; if (riceAdded) html += `🍚 熟米 ${riceAmount}斗<br>`; if (waterAdded) html += (waterType === 'cooked') ? `♨️ 熟水 ${cookedWaterAmount}斗 (冬酒)<br>` : `❄️ 冷水 ${coldWaterAmount}斗 (春酒)<br>`; $jarDetail.html(html); }
+    function checkRatioAndComplete() {
+        let qu = quAmount, rice = riceAmount, water = (waterType === 'cooked') ? cookedWaterAmount : coldWaterAmount;
+        if (qu === 1 && rice === 2 && water === 1) { let wineType = (waterType === 'cooked') ? '冬酒' : '春酒'; $gameMsgSangluo.html(`🎉 配比正确！${wineType} 酿造成功！符合“麴末一斗，熟米二斗，水一斗”的古法。`); $jarStatus.html(`✨ 酿造完成！你获得了 ${wineType} ✨`); $completeSangluoBtn.show(); }
+        else { $jarStatus.html('❌ 配比不正确，请重置后重新调整数量再试。'); $gameMsgSangluo.html(`当前比例: 麴末 ${qu}斗 : 熟米 ${rice}斗 : 水 ${water}斗，需要 1:2:1。请重置后重新调节数量。`); }
+    }
+    function resetSangluoSimulation() {
+        quAmount = 0; riceAmount = 0; cookedWaterAmount = 0; coldWaterAmount = 0; quAdded = false; riceAdded = false; waterAdded = false; waterType = null;
+        updateQuantities(); $('#quAdded, #riceAdded, #cwAdded, #clAdded').empty(); $('#quMinus, #quPlus, #riceMinus, #ricePlus, #cwMinus, #cwPlus, #clMinus, #clPlus').prop('disabled', false);
+        $jarStatus.empty(); $jarDetail.empty(); $completeSangluoBtn.hide(); $gameMsgSangluo.html('📜 配比要求：麴末 : 熟米 : 水 = 1 : 2 : 1 (斗)<br>熟水→冬酒，冷水→春酒。先调节各原料数量，再分别拖拽入瓮。每种原料只能加入一次，不可重复。');
+        updateDragStatus(); initDraggableSangluo();
+    }
+    function bindQuantityEvents() {
+        $('#quPlus').click(() => { if (!quAdded) { quAmount++; updateQuantities(); updateDragStatus(); } });
+        $('#quMinus').click(() => { if (!quAdded && quAmount > 0) { quAmount--; updateQuantities(); updateDragStatus(); } });
+        $('#ricePlus').click(() => { if (!riceAdded) { riceAmount++; updateQuantities(); updateDragStatus(); } });
+        $('#riceMinus').click(() => { if (!riceAdded && riceAmount > 0) { riceAmount--; updateQuantities(); updateDragStatus(); } });
+        $('#cwPlus').click(() => { if (!waterAdded) { cookedWaterAmount++; updateQuantities(); updateDragStatus(); } });
+        $('#cwMinus').click(() => { if (!waterAdded && cookedWaterAmount > 0) { cookedWaterAmount--; updateQuantities(); updateDragStatus(); } });
+        $('#clPlus').click(() => { if (!waterAdded) { coldWaterAmount++; updateQuantities(); updateDragStatus(); } });
+        $('#clMinus').click(() => { if (!waterAdded && coldWaterAmount > 0) { coldWaterAmount--; updateQuantities(); updateDragStatus(); } });
+    }
+    $completeSangluoBtn.on('click', function() { let wineType = (waterType === 'cooked') ? '冬酒' : '春酒'; alert(`“作桑落酒法”成功！\n${wineType}已酿成，酒气香美，合古法“限三酘便止”。恭喜！`); });
+    $resetSangluoBtn.on('click', resetSangluoSimulation);
+    $backToSelectionFromSangluo.on('click', function() { $sangluoPage.hide(); $selectionPage.show(); clearSelection(); selectedMethod = null; updateSelectedDisplay(); });
+    bindQuantityEvents(); initDraggableSangluo(); updateDragStatus();
+
+    // ================= 春酒模拟页面完整逻辑（原第二段代码，变量名加后缀避免冲突） =================
+    let quProcessedChun = false, riceProcessedChun = false, stage1CompletedChun = false;
+    const $stage1Chun = $('#stage1Chun'), $stage2Chun = $('#stage2Chun'), $waterDropZoneChun = $('#waterDropZoneChun'), $waterResultAreaChun = $('#waterResultAreaChun'), $stage1MsgChun = $('#stage1MsgChun'), $resetBtnChun = $('#resetBtnChun'), $completeBtnChun = $('#completeBtnChun');
+    const orderListChun = [
+        { name: "2石", value: 20 }, { name: "17斗", value: 17 }, { name: "14斗", value: 14 },
+        { name: "11斗", value: 11 }, { name: "10斗", value: 10 }, { name: "9斗", value: 9 }, { name: "9斗", value: 9 }
+    ];
+    const remedyListChun = [
+        { name: "3斗", value: 3 }, { name: "4斗", value: 4 }, { name: "2斗", value: 2 }, { name: "3斗", value: 3 }
+    ];
+    let currentOrderIndexChun = 0, totalRiceAddedChun = 0, waitForStirChun = false, stirringEnabledChun = false, fermentationCompleteChun = false, tasteStatusChun = null, remedyRemainingChun = [];
+    const $riceStockAreaChun = $('#riceStockAreaChun'), $jarDropZoneChun = $('#jarDropZoneChun'), $totalRiceSpanChun = $('#totalRiceChun'), $stirAreaChun = $('#stirAreaChun'), $stirBtnChun = $('#stirBtnChun'), $tasteLabelChun = $('#tasteLabelChun'), $stage2MsgChun = $('#stage2MsgChun');
+
+    function generateRiceIconsChun() {
+        $riceStockAreaChun.empty();
+        for (let i = currentOrderIndexChun; i < orderListChun.length; i++) {
+            const item = orderListChun[i];
+            const $div = $('<div>').addClass('drag-item').attr('data-rice-value', item.value).attr('data-rice-name', item.name);
+            $div.html(`🌾<span class="item-text">${item.name}</span>`);
+            if (i === currentOrderIndexChun && !waitForStirChun) $div.draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100 });
+            else { $div.addClass('disabled-drag').draggable('disable'); }
+            $riceStockAreaChun.append($div);
+        }
+        if (fermentationCompleteChun && remedyRemainingChun.length > 0) {
+            for (let i = 0; i < remedyRemainingChun.length; i++) {
+                const rem = remedyRemainingChun[i];
+                const $div = $('<div>').addClass('drag-item').attr('data-rice-value', rem.value).attr('data-rice-name', rem.name);
+                $div.html(`🌾<span class="item-text">${rem.name}</span>`);
+                $div.draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100 });
+                $riceStockAreaChun.append($div);
+            }
+        }
+    }
+    function updateTotalRiceChun() { $totalRiceSpanChun.text(totalRiceAddedChun); if (totalRiceAddedChun > 100 && !$('#overflowWarningChun').length) $jarDropZoneChun.append('<div id="overflowWarningChun" style="color:red; margin-top:5px;">⚠️ 已超过十石，小心溢出！</div>'); else $('#overflowWarningChun').remove(); }
+    function updateTasteDisplayChun() {
+        if (tasteStatusChun === 'sufficient') $tasteLabelChun.html('✅ 酒味充足').removeClass('bitter').addClass('success');
+        else if (tasteStatusChun === 'bitter') $tasteLabelChun.html('❌ 酒味偏苦').removeClass('success').addClass('bitter');
+        else $tasteLabelChun.html('');
+    }
+    function checkFermentationCompleteChun() {
+        if (currentOrderIndexChun >= orderListChun.length && !fermentationCompleteChun) {
+            fermentationCompleteChun = true;
+            let rand = Math.random();
+            tasteStatusChun = (rand < 0.5) ? 'bitter' : 'sufficient';
+            updateTasteDisplayChun();
+            if (tasteStatusChun === 'sufficient') { $stage2MsgChun.html('🎉 酒味充足！恭喜酿成春酒！点击“酿造完成”按钮。'); $completeBtnChun.show(); }
+            else { $stage2MsgChun.html('⚠️ 酒味偏苦，需要继续添加少量米（三斗、四斗等）来改善。请从下方备用米中拖拽添加。'); remedyRemainingChun = remedyListChun.map(r => ({ ...r })); generateRiceIconsChun(); }
+        }
+    }
+    function addRemedyRiceChun(amount) {
+        totalRiceAddedChun += amount; updateTotalRiceChun();
+        let rand = Math.random();
+        tasteStatusChun = (rand < 0.5) ? 'bitter' : 'sufficient';
+        updateTasteDisplayChun();
+        if (tasteStatusChun === 'sufficient') { $stage2MsgChun.html('🎉 酒味已变充足！恭喜酿成春酒！点击“酿造完成”按钮。'); $completeBtnChun.show(); }
+        else $stage2MsgChun.html('⚠️ 酒味仍然偏苦，请继续添加备用米。');
+        if (remedyRemainingChun.length === 0 && tasteStatusChun !== 'sufficient') { tasteStatusChun = 'sufficient'; updateTasteDisplayChun(); $stage2MsgChun.html('🎉 所有米用尽，酒味终于充足！恭喜酿成春酒！点击“酿造完成”按钮。'); $completeBtnChun.show(); }
+    }
+    function enableStirChun() {
+        stirringEnabledChun = true;
+        $stirAreaChun.show();
+        $stirBtnChun.off('click').on('click', function() {
+            if (!stirringEnabledChun) return;
+            stirringEnabledChun = false; waitForStirChun = false; $stirAreaChun.hide();
+            currentOrderIndexChun++;
+            generateRiceIconsChun();
+            if (currentOrderIndexChun >= orderListChun.length) checkFermentationCompleteChun();
+            else $stage2MsgChun.html(`✅ 搅拌完成。现在可以投下一份米：${orderListChun[currentOrderIndexChun].name}`);
+        });
+    }
+    $jarDropZoneChun.droppable({
+        accept: '.drag-item[data-rice-value]',
+        drop: function(event, ui) {
+            const $dragged = ui.draggable, value = parseInt($dragged.attr('data-rice-value')), name = $dragged.attr('data-rice-name');
+            if (!fermentationCompleteChun) {
+                if (waitForStirChun) { $stage2MsgChun.html('❌ 请先点击“明早·搅拌”按钮，再投下一份米。'); return; }
+                if (currentOrderIndexChun >= orderListChun.length) { $stage2MsgChun.html('❌ 所有基础米已投完，请等待发酵结果。'); return; }
+                const expectedItem = orderListChun[currentOrderIndexChun];
+                if (value !== expectedItem.value) { $stage2MsgChun.html(`❌ 投米顺序错误！当前应该投放 ${expectedItem.name}。请重置后重新尝试。`); return; }
+                $dragged.remove(); totalRiceAddedChun += value; updateTotalRiceChun(); waitForStirChun = true; stirringEnabledChun = false; $stage2MsgChun.html(`✅ 已投入 ${name}。明日清晨需搅拌。`); enableStirChun(); generateRiceIconsChun();
+            } else {
+                if (tasteStatusChun === 'sufficient') { $stage2MsgChun.html('❌ 酒味已经充足，无需再加米。'); return; }
+                const index = remedyRemainingChun.findIndex(r => r.value === value && r.name === name);
+                if (index !== -1) { remedyRemainingChun.splice(index, 1); $dragged.remove(); addRemedyRiceChun(value); generateRiceIconsChun(); }
+                else $stage2MsgChun.html('❌ 无效的米。');
+            }
+        }
+    });
+    function initStage2Chun() {
+        currentOrderIndexChun = 0; totalRiceAddedChun = 0; waitForStirChun = false; stirringEnabledChun = false; fermentationCompleteChun = false; tasteStatusChun = null; remedyRemainingChun = [];
+        $stirAreaChun.hide(); $completeBtnChun.hide(); $tasteLabelChun.html(''); updateTotalRiceChun(); generateRiceIconsChun(); $stage2MsgChun.html('投米顺序：二石 → 十七斗 → 十四斗 → 十一斗 → 十斗 → 九斗 → 九斗。每次投米后需点击“明早·搅拌”按钮。');
+    }
+    function checkStage1CompleteChun() {
+        if (quProcessedChun && riceProcessedChun && !stage1CompletedChun) {
+            stage1CompletedChun = true; $stage1MsgChun.html('🎉 酒麴和米均已处理完毕。七八天后，酒麴开始发酵。进入投米阶段。');
+            setTimeout(() => { $stage1Chun.hide(); $stage2Chun.show(); initStage2Chun(); }, 1500);
+        }
+    }
+    $waterDropZoneChun.droppable({
+        accept: '.drag-item[data-type="rawQu"], .drag-item[data-type="rawMillet"]',
+        drop: function(event, ui) {
+            const $dragged = ui.draggable, type = $dragged.attr('data-type');
+            if (type === 'rawQu') {
+                if (quProcessedChun) { $stage1MsgChun.html('❌ 酒麴已经浸泡过了，请勿重复。'); return; }
+                $dragged.remove(); quProcessedChun = true; $waterResultAreaChun.append('<div class="static-icon">🍶💧</div><div class="item-text">酒麴已浸</div>'); $stage1MsgChun.html('✅ 酒麴已用春水浸泡。'); checkStage1CompleteChun();
+            } else if (type === 'rawMillet') {
+                if (riceProcessedChun) { $stage1MsgChun.html('❌ 米已经淘洗过了，请勿重复。'); return; }
+                $dragged.remove(); riceProcessedChun = true; $waterResultAreaChun.append('<div class="static-icon">🌾💧</div><div class="item-text">米已淘净</div>'); $stage1MsgChun.html('✅ 米已淘洗。'); checkStage1CompleteChun();
+            }
+        }
+    });
+    function resetChunjiuGame() {
+        quProcessedChun = false; riceProcessedChun = false; stage1CompletedChun = false;
+        $stage1Chun.show(); $stage2Chun.hide(); $waterResultAreaChun.empty(); $waterDropZoneChun.empty();
+        $('.station:first .icon-area').empty(); $('.station:eq(1) .icon-area').empty();
+        const newQu = $('<div>').addClass('drag-item').attr('data-type', 'rawQu').html('🍶<span class="item-text">晒乾麴末</span>');
+        const newRice = $('<div>').addClass('drag-item').attr('data-type', 'rawMillet').html('🌾<span class="item-text">米</span>');
+        $('.station:first .icon-area').append(newQu); $('.station:eq(1) .icon-area').append(newRice);
+        $stage1MsgChun.html('📜 第一步：将酒麴和米分别拖入春水中，表示淘米与浸泡酒麴。');
+        $('.drag-item').draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100 });
+        $waterDropZoneChun.droppable({
+            accept: '.drag-item[data-type="rawQu"], .drag-item[data-type="rawMillet"]',
+            drop: function(event, ui) {
+                const $dragged = ui.draggable, type = $dragged.attr('data-type');
+                if (type === 'rawQu') {
+                    if (quProcessedChun) { $stage1MsgChun.html('❌ 酒麴已经浸泡过了，请勿重复。'); return; }
+                    $dragged.remove(); quProcessedChun = true; $waterResultAreaChun.append('<div class="static-icon">🍶💧</div><div class="item-text">酒麴已浸</div>'); $stage1MsgChun.html('✅ 酒麴已用春水浸泡。'); checkStage1CompleteChun();
+                } else if (type === 'rawMillet') {
+                    if (riceProcessedChun) { $stage1MsgChun.html('❌ 米已经淘洗过了，请勿重复。'); return; }
+                    $dragged.remove(); riceProcessedChun = true; $waterResultAreaChun.append('<div class="static-icon">🌾💧</div><div class="item-text">米已淘净</div>'); $stage1MsgChun.html('✅ 米已淘洗。'); checkStage1CompleteChun();
+                }
+            }
+        });
+    }
+    $resetBtnChun.on('click', resetChunjiuGame);
+    $completeBtnChun.on('click', function() { if (tasteStatusChun === 'sufficient') alert('“春酒”酿造成功！\n依《齐民要术》春酒法，酒味充足，香气扑鼻，得白堕春醪之精髓。恭喜！'); else alert('尚未酿成春酒，请继续调整。'); });
+    $('.drag-item').draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100 });
+    $('#backToSelectionFromChunjiu').on('click', function() { $chunjiuPage.hide(); $selectionPage.show(); clearSelection(); selectedMethod = null; updateSelectedDisplay(); });
+    window.resetChunjiuGame = resetChunjiuGame; // 供确认时调用
+});
+</script>
+</body>
+</html>

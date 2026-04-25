@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>白堕春醪 · 古法酿酒模拟器（五关完整版）</title>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            background: #2c2416;
+            background-image: radial-gradient(circle at 20% 30%, #3e2c1c, #1f180e);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', '华文楷书', 'Microsoft YaHei', '宋体', serif;
+            padding: 20px;
+            margin: 0;
+        }
+        .game-wrapper {
+            max-width: 1300px;
+            width: 100%;
+            background: #fdf1df;
+            background: linear-gradient(145deg, #fff3e2, #f7e5ce);
+            border-radius: 60px 40px 60px 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,245,200,0.8);
+            padding: 20px 25px 30px;
+            border: 1px solid #cfaf7a;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin: 0 0 5px 0;
+            color: #5c391a;
+            letter-spacing: 4px;
+            text-shadow: 3px 3px 0 #e2cca8;
+        }
+        .sub {
+            text-align: center;
+            color: #8b6239;
+            margin-bottom: 20px;
+            font-style: italic;
+            border-bottom: 1px dashed #cfb175;
+            padding-bottom: 10px;
+        }
+        /* 古籍原文引用样式 - 字体调大 */
+        .original-quote {
+            background: #e8d9c6;
+            border-left: 6px solid #b78747;
+            padding: 12px 18px;
+            margin: 15px 0 10px 0;
+            border-radius: 20px 8px 20px 8px;
+            font-size: 1.05rem;      /* 原 0.85rem，调大 */
+            font-weight: 500;
+            color: #3e2a14;
+            font-family: '华文楷书', '楷体', 'Segoe UI', serif;
+            box-shadow: inset 0 0 0 1px #fdf3e4, 0 2px 6px rgba(0,0,0,0.05);
+            line-height: 1.5;
+        }
+        .original-quote::before {
+            content: "📜 《齐民要术》· 大州白堕麴方";
+            display: block;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #8b5a2b;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+        .workspace {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: flex-start;
+            gap: 30px 20px;
+            margin: 30px 0;
+        }
+        .station {
+            background: #efdecb;
+            border-radius: 48px 24px 48px 24px;
+            padding: 20px 15px;
+            text-align: center;
+            box-shadow: inset 0 0 0 1px #fff6e8, 0 8px 18px rgba(0,0,0,0.15);
+            min-width: 160px;
+            flex: 1;
+        }
+        .station h3 {
+            margin: 0 0 12px 0;
+            font-size: 1.2rem;
+            color: #4b311a;
+            border-left: 4px solid #b78747;
+            padding-left: 12px;
+            display: inline-block;
+        }
+        .icon-area {
+            min-height: 160px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            align-items: center;
+            margin: 15px 0;
+        }
+        .drag-item {
+            cursor: grab;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100px;
+            height: 100px;
+            background: rgba(255,245,210,0.6);
+            border-radius: 20px;
+            transition: 0.05s linear;
+            padding: 6px;
+            text-align: center;
+            font-size: 36px;
+        }
+        .drag-item .herb-name, .drag-item .item-text {
+            font-size: 12px;
+            display: block;
+            margin-top: 4px;
+            font-weight: normal;
+            color: #4b311a;
+        }
+        .drag-item .small-text {
+            font-size: 10px;
+            display: block;
+            color: #7a5a3a;
+            margin-top: 2px;
+        }
+        .drag-item.cold-item {
+            width: 80px;
+            height: 80px;
+            font-size: 36px;
+        }
+        .drag-item.cold-item .water-text {
+            font-size: 14px;
+            display: block;
+        }
+        .drag-item:active {
+            cursor: grabbing;
+        }
+        .static-icon {
+            font-size: 48px;
+            margin: 5px 0;
+        }
+        .clickable-icon {
+            cursor: pointer;
+            transition: transform 0.05s;
+        }
+        .clickable-icon:active {
+            transform: scale(0.95);
+        }
+        .drop-zone {
+            background: #dac29c;
+            border-radius: 40px;
+            padding: 12px;
+            margin-top: 10px;
+            border: 2px dashed #aa7b42;
+            transition: background 0.1s;
+            font-size: 0.9rem;
+            color: #5a3a1a;
+            min-height: 70px;
+        }
+        .drop-zone.ui-droppable-active {
+            background: #f3e1be;
+            border-color: #c4842c;
+        }
+        .info-panel {
+            background: #faeedb;
+            border-radius: 40px;
+            padding: 12px 20px;
+            margin-top: 25px;
+            text-align: center;
+            font-size: 1rem;
+            color: #3f2b18;
+            border-left: 8px solid #c28a46;
+        }
+        .reset-btn, .next-btn {
+            background: #b47b44;
+            border: none;
+            color: #fff2e2;
+            font-weight: bold;
+            padding: 10px 28px;
+            border-radius: 40px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: 0.1s;
+            font-family: inherit;
+            margin-right: 10px;
+        }
+        .reset-btn:hover, .next-btn:hover {
+            background: #9b6232;
+            transform: scale(0.97);
+        }
+        .next-btn {
+            background: #7d5d3a;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #b78f5a;
+            margin-top: 20px;
+            border-top: 1px solid #e5cfae;
+            padding-top: 15px;
+        }
+        .color-indicator {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 10px auto;
+            border: 2px solid #8b6946;
+            background-color: #d9c2a7;
+            transition: background-color 0.2s;
+        }
+        .flex-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .hide {
+            display: none;
+        }
+        .progress-count {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #a55117;
+            margin-top: 10px;
+        }
+        .sun-icon {
+            font-size: 48px;
+            margin: 10px auto 5px;
+            display: block;
+        }
+        .sun-caption {
+            font-size: 14px;
+            color: #b46f2a;
+            text-align: center;
+        }
+        .stack-layer {
+            background: rgba(210, 180, 140, 0.5);
+            border-radius: 12px;
+            margin: 4px 0;
+            padding: 8px;
+            min-width: 100px;
+            text-align: center;
+        }
+        #stackContainer {
+            display: flex;
+            flex-direction: column-reverse;
+            background: #d9c2a7;
+            border-radius: 20px;
+            padding: 12px;
+            min-height: 200px;
+        }
+        .bed-layer {
+            background: transparent;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 8px;
+        }
+        /* 第五关样式 - 整体放大，汉字等比例 */
+        .door-window-area {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 20px 0;
+        }
+        .door-icon, .window-icon {
+            font-size: 56px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .door-icon span, .window-icon span {
+            font-size: 18px;
+        }
+        .door-icon:hover, .window-icon:hover {
+            transform: scale(1.05);
+        }
+        .weather-icon {
+            font-size: 50px;
+            margin: 15px;
+            display: inline-block;
+        }
+        .stage-area {
+            background: #e8dcc8;
+            border-radius: 30px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .day-card {
+            background: #fff6e8;
+            border-radius: 20px;
+            padding: 12px 10px;
+            margin: 10px;
+            display: inline-block;
+            vertical-align: top;
+            width: 180px;
+            min-height: 200px;
+        }
+        .day-title {
+            font-weight: bold;
+            color: #a55117;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+        /* 第五卡片内的拖拽图标放大 */
+        .day-card .drag-item {
+            width: 85px;
+            height: 85px;
+            font-size: 40px;
+            margin: 8px auto;
+        }
+        .day-card .drag-item .item-text {
+            font-size: 14px;
+            margin-top: 6px;
+        }
+        .day-card .static-icon {
+            font-size: 36px;
+        }
+        .day-card .clickable-icon {
+            font-size: 16px;
+            display: inline-block;
+            background: #dac29c;
+            padding: 5px 12px;
+            border-radius: 24px;
+            margin-top: 8px;
+        }
+        .day-card .drop-zone {
+            font-size: 0.8rem;
+            padding: 8px;
+            min-height: 60px;
+        }
+        @media (max-width: 800px) {
+            .drag-item { width: 80px; height: 80px; font-size: 28px; }
+            .day-card .drag-item { width: 70px; height: 70px; font-size: 32px; }
+            .door-icon, .window-icon { font-size: 48px; }
+            .day-card { width: 160px; }
+            .original-quote { font-size: 0.95rem; padding: 10px 14px; } /* 移动端略微调整但仍比原版大 */
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-wrapper">
+    <h1>🍶 白堕春醪 · 古法酿造 🧂</h1>
+    <div class="sub" id="globalSub">《齐民要术》大州白堕麴方 · 五关完整工艺</div>
+
+    <!-- ========================= 第一关 ========================= -->
+    <div id="level1Container">
+        <div class="original-quote">“榖三石，蒸兩石，生一石，别磑之令細，然後合和之也。”</div>
+        <div class="workspace">
+            <div class="station">
+                <h3>🌾 生谷 (三石)</h3>
+                <div class="icon-area" id="rawArea">
+                    <div class="drag-item" data-type="raw">🌾</div>
+                    <div class="drag-item" data-type="raw">🌾</div>
+                    <div class="drag-item" data-type="raw">🌾</div>
+                </div>
+            </div>
+            <div class="station">
+                <h3>🔥 蒸 笼</h3>
+                <div class="static-icon">🧺💨</div>
+                <div class="drop-zone" id="steamerDrop">将生谷拖到这里 → 蒸熟</div>
+                <div class="icon-area" id="steamedArea"></div>
+            </div>
+            <div class="station">
+                <h3>⚙️ 石 磑</h3>
+                <div class="static-icon">🪨➰</div>
+                <div class="drop-zone" id="millDrop">将谷子（生/熟）拖到这里 → 磨成粉</div>
+                <div class="icon-area" id="powderArea"></div>
+            </div>
+            <div class="station">
+                <h3>🏺 陶 罐 (合和)</h3>
+                <div class="static-icon">🏺</div>
+                <div class="drop-zone" id="mixDrop">将粉末拖到这里 → 完成混合</div>
+                <div class="icon-area" id="mixedArea"></div>
+            </div>
+        </div>
+        <div class="info-panel" id="level1Msg">
+            📜 第一步：把三石🌾中的两石拖到【蒸笼】上 → 变成两石🍚<br>
+            第二步：把剩下的一石🌾和两石🍚都拖到【石磑】上 → 变成三石粉末⚪<br>
+            第三步：把三石⚪拖到右边【陶罐】中 → 完成“合和”！
+        </div>
+        <div style="text-align: center;">
+            <button class="reset-btn" id="resetLevel1Btn">🔄 重玩第一关</button>
+        </div>
+    </div>
+
+    <!-- ========================= 第二关（初始隐藏） ========================= -->
+    <div id="level2Container" class="hide">
+        <div class="original-quote">“桑葉、胡葈葉、艾葉各二尺圍，長二尺許，合煮之使爛。去滓取汁，以冷水和之，如酒色。”</div>
+        <div class="workspace">
+            <div class="station">
+                <h3>🌿 草药三味</h3>
+                <div class="icon-area" id="herbsArea"></div>
+            </div>
+            <div class="station">
+                <h3>🔥 煮 锅</h3>
+                <div class="static-icon">🍲🔥</div>
+                <div class="drop-zone" id="potDrop">将三种草药依次拖到这里 → 合煮</div>
+                <div class="icon-area" id="potResultArea"></div>
+            </div>
+            <div class="station">
+                <h3>🗑️ 丢弃</h3>
+                <div class="static-icon">🗑️</div>
+                <div class="drop-zone" id="trashDrop">将渣滓拖到这里丢弃</div>
+            </div>
+            <div class="station">
+                <h3>🏺 盛 具</h3>
+                <div class="static-icon">🏺</div>
+                <div class="drop-zone" id="containerDrop">将汁液拖到这里 → 盛放</div>
+                <div class="icon-area" id="containerLiquidArea"></div>
+                <div class="flex-row">
+                    <div>🍷 汁液颜色：</div>
+                    <div id="colorIndicator" class="color-indicator" style="background-color: #b87c4f;"></div>
+                </div>
+            </div>
+            <div class="station">
+                <h3>💧 冷 水</h3>
+                <div class="static-icon">💧❄️</div>
+                <div class="drag-item cold-item" id="coldWaterIcon" data-type="coldwater">
+                    💧<span class="water-text">冷水</span>
+                </div>
+                <div class="drop-zone" id="waterMixDrop">将冷水拖到盛具中 → 调色</div>
+                <div class="info-text" style="font-size:12px; margin-top:8px;">加水次数: <span id="waterCount">0</span>/3</div>
+            </div>
+        </div>
+        <div class="info-panel" id="level2Msg">
+            📜 第二关：① 把三种草药依次拖入煮锅 → ② 将生成的渣滓丢弃 → ③ 把汁液拖入盛具 → ④ 将冷水拖入盛具三次，直到颜色变为酒色。
+        </div>
+        <div style="text-align: center;">
+            <button class="reset-btn" id="resetLevel2Btn">🔄 重玩第二关</button>
+            <button class="next-btn" id="backToLevel1Btn">◀ 返回第一关</button>
+        </div>
+    </div>
+
+    <!-- ========================= 第三关（初始隐藏） ========================= -->
+    <div id="level3Container" class="hide">
+        <div class="original-quote">“和麴，燥濕以意酌量。臼中搗三千六百杵訖，餅之。”</div>
+        <div class="workspace">
+            <div class="station">
+                <h3>🧂 原料</h3>
+                <div class="icon-area" id="level3ResourcesArea"></div>
+            </div>
+            <div class="station">
+                <h3>🪨 石 臼</h3>
+                <div class="static-icon">🪨</div>
+                <div class="drop-zone" id="mixerDrop">将粉末和药汁拖到这里 → 混合</div>
+                <div class="icon-area" id="mixerArea">
+                    <div id="sunArea" style="display:none;">
+                        <div class="sun-icon">☀️</div>
+                        <div class="sun-caption">日中</div>
+                    </div>
+                    <div id="clickContainer" style="cursor:pointer; display:inline-block;">
+                        <div class="static-icon clickable-icon" id="pestleIcon">🪨<span style="font-size:14px; display:block;">石杵</span></div>
+                    </div>
+                    <div id="poundCounter" class="progress-count">杵数: 0 / 36</div>
+                </div>
+            </div>
+            <div class="station">
+                <h3>🍘 饼模</h3>
+                <div class="static-icon">🍘</div>
+                <div class="drop-zone" id="cakeMoldDrop">将捣好的酒曲拖到这里 → 制成饼</div>
+                <div class="icon-area" id="cakeResultArea"></div>
+            </div>
+        </div>
+        <div class="info-panel" id="level3Msg">
+            📜 第三关：① 将左边的粉末和药汁拖入石臼 → ② 出现太阳后，点击石杵36次（每点击一次代表一百杵） → ③ 生成酒曲，将其拖到饼模完成制饼。
+        </div>
+        <div style="text-align: center;">
+            <button class="reset-btn" id="resetLevel3Btn">🔄 重玩第三关</button>
+            <button class="next-btn" id="backToLevel2Btn">◀ 返回第二关</button>
+        </div>
+    </div>
+
+    <!-- ========================= 第四关（初始隐藏） ========================= -->
+    <div id="level4Container" class="hide">
+        <div class="original-quote">“安置暖屋牀上，先布麥稭，厚二寸，然後置麴。上亦與稭二寸覆之。”</div>
+        <div class="workspace">
+            <div class="station">
+                <h3>🍘 曲饼 (两个)</h3>
+                <div class="icon-area" id="level4CakesArea">
+                    <div class="drag-item" data-cake="cake1">🍘<span class="item-text">曲饼</span></div>
+                    <div class="drag-item" data-cake="cake2">🍘<span class="item-text">曲饼</span></div>
+                </div>
+            </div>
+            <div class="station">
+                <h3>🏠 暖 屋</h3>
+                <div class="static-icon">🏠🔥</div>
+                <div class="icon-area" id="bedArea">
+                    <div id="stackContainer"></div>
+                </div>
+            </div>
+            <div class="station">
+                <h3>🌾 麥稭 (二寸厚)</h3>
+                <div class="icon-area" id="level4StrawArea">
+                    <div class="drag-item" data-straw="straw1">🌾<span class="item-text">麥稭</span><span class="small-text">厚二寸</span></div>
+                    <div class="drag-item" data-straw="straw2">🌾<span class="item-text">麥稭</span><span class="small-text">厚二寸</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="info-panel" id="level4Msg">
+            📜 第四关：按照顺序堆叠：① 先放一个曲饼在床 → ② 再放一层麥稭 → ③ 再放第二个曲饼 → ④ 最后放第二层麥稭。顺序不能错，必须依次堆叠。床在最底下，往上叠加。
+        </div>
+        <div style="text-align: center;">
+            <button class="reset-btn" id="resetLevel4Btn">🔄 重玩第四关</button>
+            <button class="next-btn" id="backToLevel3Btn">◀ 返回第三关</button>
+            <button class="next-btn" id="finishGameBtn4" style="background:#8a6d4b; display:none;">🏆 进入第五关 🏆</button>
+        </div>
+    </div>
+
+    <!-- ========================= 第五关（初始隐藏） ========================= -->
+    <div id="level5Container" class="hide">
+        <div class="original-quote">“閉户勿使露見風日。一七日，冷水濕，手拭之令遍，即翻之。至二七日，一例側之。三七日，籠之。四七日，出，置日中，曝令乾。”</div>
+        <!-- 阶段一：关门关窗 -->
+        <div id="stage1" class="stage-area">
+            <div class="door-window-area">
+                <div class="door-icon" id="doorOpen">🚪 <span>(开)</span></div>
+                <div class="window-icon" id="windowOpen">🪟 <span>(开)</span></div>
+            </div>
+            <div class="weather-area">
+                <span class="weather-icon">💨</span>
+                <span class="weather-icon">☀️</span>
+            </div>
+            <div class="info-panel" style="margin-top:10px;">请点击门和窗，将它们关闭，以隔绝风和日。</div>
+        </div>
+        <!-- 阶段二：四七日操作 -->
+        <div id="stage2" style="display:none;">
+            <div class="workspace">
+                <!-- 一七日 -->
+                <div class="day-card" id="day1Card">
+                    <div class="day-title">📅 一七日</div>
+                    <div class="icon-area" id="day1Area">
+                        <div class="drag-item" data-type="cakeForDay1">🍘<span class="item-text">曲饼</span></div>
+                        <div class="drag-item" data-type="coldWaterForDay1">💧<span class="item-text">冷水</span></div>
+                        <div class="static-icon clickable-icon" id="flipBtn">🔄 翻之</div>
+                    </div>
+                </div>
+                <!-- 二七日 -->
+                <div class="day-card" id="day2Card" style="opacity:0.5;">
+                    <div class="day-title">📅 二七日</div>
+                    <div class="icon-area" id="day2Area">
+                        <div class="static-icon" id="sideCakePlaceholder" style="font-size:36px;">🍘 <span style="font-size:14px;">(未侧)</span></div>
+                        <div class="static-icon clickable-icon" id="sideBtn" style="display:none;">⤵️ 侧之</div>
+                    </div>
+                </div>
+                <!-- 三七日 -->
+                <div class="day-card" id="day3Card" style="opacity:0.5;">
+                    <div class="day-title">📅 三七日</div>
+                    <div class="icon-area" id="day3Area">
+                        <div class="static-icon" id="cageIcon" style="font-size:40px;">🏺 <span style="font-size:14px;">笼</span></div>
+                        <div class="drop-zone" id="cageDrop">将曲饼拖入笼中</div>
+                    </div>
+                </div>
+                <!-- 四七日 -->
+                <div class="day-card" id="day4Card" style="opacity:0.5;">
+                    <div class="day-title">📅 四七日</div>
+                    <div class="icon-area" id="day4Area">
+                        <div class="static-icon" id="sunIconLevel5" style="font-size:40px;">☀️ <span style="font-size:14px;">曝日</span></div>
+                        <div class="drop-zone" id="sunDrop">将曲饼拖到太阳下</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="info-panel" id="level5Msg">第五关：先关闭门窗隔绝风日，然后依次完成一七日到四七日的操作。</div>
+        <div style="text-align: center;">
+            <button class="reset-btn" id="resetLevel5Btn">🔄 重玩第五关</button>
+            <button class="next-btn" id="backToLevel4Btn">◀ 返回第四关</button>
+            <button class="next-btn" id="finishGameBtn5" style="background:#8a6d4b; display:none;">🏆 完成全部五关 🏆</button>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 15px;">
+        <button class="next-btn" id="nextLevel2Btn" style="display: none;">▶ 进入第二关</button>
+        <button class="next-btn" id="nextLevel3Btn" style="display: none;">▶ 进入第三关</button>
+        <button class="next-btn" id="nextLevel4Btn" style="display: none;">▶ 进入第四关</button>
+        <button class="next-btn" id="nextLevel5Btn" style="display: none;">▶ 进入第五关</button>
+    </div>
+    <footer>📖 依据《齐民要术》大州白堕麴方 · 煮药汁 · 捣麴 · 安麴 · 养麴 | 完成五关再现完整酿造工艺</footer>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+<script>
+$(function() {
+    // ---------- 全局关卡切换 ----------
+    const $level1 = $('#level1Container');
+    const $level2 = $('#level2Container');
+    const $level3 = $('#level3Container');
+    const $level4 = $('#level4Container');
+    const $level5 = $('#level5Container');
+    const $nextLevel2Btn = $('#nextLevel2Btn');
+    const $nextLevel3Btn = $('#nextLevel3Btn');
+    const $nextLevel4Btn = $('#nextLevel4Btn');
+    const $nextLevel5Btn = $('#nextLevel5Btn');
+    let level1Completed = false, level2Completed = false, level3Completed = false, level4Completed = false, level5Completed = false;
+
+    // ---------- 第一关逻辑（完整） ----------
+    let rawCount = 3, steamedCount = 0, powderCount = 0, mixedCount = 0;
+    const $rawArea = $('#rawArea');
+    const $steamedArea = $('#steamedArea');
+    const $powderArea = $('#powderArea');
+    const $mixedArea = $('#mixedArea');
+    const $level1Msg = $('#level1Msg');
+
+    function renderLevel1() {
+        $rawArea.empty(); $steamedArea.empty(); $powderArea.empty(); $mixedArea.empty();
+        for (let i = 0; i < rawCount; i++) $rawArea.append($('<div>').addClass('drag-item').attr('data-type', 'raw').text('🌾'));
+        for (let i = 0; i < steamedCount; i++) $steamedArea.append($('<div>').addClass('drag-item').attr('data-type', 'steamed').text('🍚'));
+        for (let i = 0; i < powderCount; i++) $powderArea.append($('<div>').addClass('drag-item').attr('data-type', 'powder').text('⚪'));
+        if (mixedCount === 3) {
+            $mixedArea.html('<div style="font-size:48px;">✨🍶✨</div><div style="font-size:0.8rem;">合和完成！白堕麴料已备</div>');
+            if (!level1Completed) { level1Completed = true; $nextLevel2Btn.show(); $level1Msg.html('✅ 第一关完成！点击下方“进入第二关”继续。'); }
+        } else {
+            $mixedArea.html(mixedCount > 0 ? `<div style="font-size:28px;">已投入 ${mixedCount}/3 石粉末</div>` : '<div style="font-size:28px;">⚱️ 等待粉末</div>');
+            $level1Msg.html(`🌾 剩余生谷: ${rawCount}石 | 🍚 蒸好待磨: ${steamedCount}石 | ⚪ 粉末: ${powderCount}石 | 🏺 已混合: ${mixedCount}/3石<br>操作步骤: ① 拖两石🌾到蒸笼→🍚；② 拖剩下的🌾和两石🍚到石磑→⚪；③ 拖三石⚪到陶罐→合和。`);
+        }
+        $('.drag-item').draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100 });
+    }
+
+    function initLevel1Droppables() {
+        $('#steamerDrop').droppable({ accept: '.drag-item[data-type="raw"]', drop: function() { if (rawCount>0 && steamedCount<2) { rawCount--; steamedCount++; renderLevel1(); $level1Msg.html(steamedCount===2?'✅ 已蒸好两石，可研磨。':'✅ 蒸熟一石。继续蒸第二石。'); } else $level1Msg.html('❌ 只能蒸两石。'); } });
+        $('#millDrop').droppable({ accept: '.drag-item[data-type="raw"], .drag-item[data-type="steamed"]', drop: function(e,ui) { let t=ui.draggable.attr('data-type'); if(t==='raw'&&rawCount>0) { rawCount--; powderCount++; renderLevel1(); $level1Msg.html('⚪ 生谷磨粉。'); } else if(t==='steamed'&&steamedCount>0) { steamedCount--; powderCount++; renderLevel1(); $level1Msg.html('⚪ 熟谷磨粉。'); } else $level1Msg.html('❌ 不可研磨。'); } });
+        $('#mixDrop').droppable({ accept: '.drag-item[data-type="powder"]', drop: function() { if(powderCount>0 && mixedCount<3) { powderCount--; mixedCount++; renderLevel1(); if(mixedCount===3) $level1Msg.html('🎊 合和完成！点击进入第二关。'); else $level1Msg.html(`🏺 已投入 ${mixedCount}/3 石粉末。`); } else $level1Msg.html('❌ 无法混合。'); } });
+    }
+
+    function resetLevel1() { rawCount=3; steamedCount=0; powderCount=0; mixedCount=0; level1Completed=false; $nextLevel2Btn.hide(); renderLevel1(); $level1Msg.html('🔄 重置第一关。'); }
+
+    // ---------- 第二关逻辑（完整） ----------
+    let herbsInPot=0, hasCooked=false, liquidInContainer=false, waterAdded=0, sludgeExists=false, liquidExists=false;
+    const colorSteps=['#6b3e1a','#9b5e2c','#d1a054','#e0b86e'];
+    const $herbsArea=$('#herbsArea'), $potResultArea=$('#potResultArea'), $containerLiquidArea=$('#containerLiquidArea');
+    const $colorIndicator=$('#colorIndicator'), $waterCountSpan=$('#waterCount'), $level2Msg=$('#level2Msg');
+
+    function updateColorDisplay() { let idx=(!liquidInContainer)?0:Math.min(waterAdded,3); $colorIndicator.css('background-color',colorSteps[idx]); }
+    function renderLevel2() {
+        $herbsArea.empty();
+        if(!hasCooked) {
+            const herbs=[{name:'mulberry',symbol:'🍃',label:'桑葉',desc:'二赤圍，長二赤'},{name:'huyi',symbol:'🍂',label:'胡葈葉',desc:'二赤圍，長二赤'},{name:'ai',symbol:'🌱',label:'艾',desc:'二赤圍，長二赤'}];
+            for(let i=herbsInPot;i<3;i++) { let h=herbs[i]; $herbsArea.append($('<div>').addClass('drag-item').attr('data-herb',h.name).html(`${h.symbol} <span class="herb-name">${h.label}</span><span class="small-text">${h.desc}</span>`)); }
+        } else $herbsArea.html('<div style="font-size:20px;">✅ 已合煮</div>');
+        $potResultArea.empty();
+        if(hasCooked) { if(sludgeExists) $potResultArea.append($('<div>').addClass('drag-item').attr('data-type','sludge').html('🪨 <span class="item-text">渣滓</span>')); if(liquidExists) $potResultArea.append($('<div>').addClass('drag-item').attr('data-type','rawLiquid').html('🧪 <span class="item-text">浓汁</span>')); }
+        else $potResultArea.html('<div style="font-size:18px;">⚙️ 等待草药入锅...</div>');
+        $containerLiquidArea.empty(); if(liquidInContainer) $containerLiquidArea.html('<div style="font-size:48px;">🧴 药汁</div>'); else $containerLiquidArea.html('<div style="font-size:28px;">⚱️ 空</div>');
+        updateColorDisplay(); $waterCountSpan.text(waterAdded);
+        if(liquidInContainer && waterAdded===3 && !level2Completed) { level2Completed=true; $nextLevel3Btn.show(); $level2Msg.html('🎉 第二关完成！点击“进入第三关”。'); }
+        $('.drag-item').draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100 });
+        $('#coldWaterIcon').draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100 });
+    }
+    function initLevel2Droppables() {
+        $('#potDrop').droppable({ accept: '.drag-item[data-herb]', drop: function(e,ui) { if(hasCooked) { $level2Msg.html('❌ 已煮过，重置。'); return; } if(herbsInPot<3) { ui.draggable.remove(); herbsInPot++; $level2Msg.html(`✅ 放入一味 (${herbsInPot}/3)。`); if(herbsInPot===3) { hasCooked=true; sludgeExists=true; liquidExists=true; $level2Msg.html('🍲 合煮完成！去渣滓，浓汁入盛具。'); } renderLevel2(); } } });
+        $('#trashDrop').droppable({ accept: '.drag-item[data-type="sludge"]', drop: function(e,ui) { if(sludgeExists) { ui.draggable.remove(); sludgeExists=false; $level2Msg.html('🗑️ 渣滓已丢。将浓汁拖入盛具。'); renderLevel2(); } else $level2Msg.html('❌ 无渣滓。'); } });
+        $('#containerDrop').droppable({ accept: '.drag-item[data-type="rawLiquid"]', drop: function(e,ui) { if(!liquidInContainer && liquidExists) { ui.draggable.remove(); liquidExists=false; liquidInContainer=true; waterAdded=0; $level2Msg.html('🧪 浓汁入盛具。请加冷水三次调色。'); renderLevel2(); } else $level2Msg.html('❌ 无效。'); } });
+        $('#waterMixDrop').droppable({ accept: '#coldWaterIcon', drop: function() { if(!liquidInContainer) { $level2Msg.html('❌ 先倒入浓汁。'); return; } if(waterAdded<3) { waterAdded++; $level2Msg.html(`💧 加水 ${waterAdded}/3`); renderLevel2(); } else $level2Msg.html('✅ 已三次。'); } });
+    }
+    function resetLevel2() { herbsInPot=0; hasCooked=false; liquidInContainer=false; waterAdded=0; sludgeExists=false; liquidExists=false; level2Completed=false; $nextLevel3Btn.hide(); renderLevel2(); $level2Msg.html('🔄 重置第二关。'); }
+
+    // ---------- 第三关逻辑（完整） ----------
+    let resources = { powder: false, liquid: false };
+    let mixedReady = false, poundCount = 0, hasSun = false, kojiReady = false, kojiDraggable = null;
+    const $level3Resources = $('#level3ResourcesArea');
+    const $mixerArea = $('#mixerArea');
+    const $sunArea = $('#sunArea');
+    const $poundCounter = $('#poundCounter');
+    const $pestleIcon = $('#pestleIcon');
+    const $cakeResultArea = $('#cakeResultArea');
+    const $level3Msg = $('#level3Msg');
+
+    function updateLevel3UI() {
+        $level3Resources.empty();
+        if(!resources.powder) $level3Resources.append($('<div>').addClass('drag-item').attr('data-type','powderForLevel3').html('⚪<span class="item-text">混合粉末</span>'));
+        if(!resources.liquid) $level3Resources.append($('<div>').addClass('drag-item').attr('data-type','liquidForLevel3').html('🧪<span class="item-text">药汁</span>'));
+        if(mixedReady) { if(!hasSun) { $sunArea.show(); hasSun=true; } $pestleIcon.addClass('clickable-icon'); $poundCounter.text(`杵数: ${poundCount} / 36`); } else { $sunArea.hide(); $pestleIcon.removeClass('clickable-icon'); $poundCounter.text(''); }
+        if(kojiReady && !kojiDraggable) { let $koji=$('<div>').addClass('drag-item').attr('data-type','koji').html('🍶<span class="item-text">酒曲</span>'); $mixerArea.append($koji); kojiDraggable=$koji; $koji.draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100 }); }
+        $cakeResultArea.empty(); if(level3Completed) $cakeResultArea.html('<div style="font-size:48px;">🍘✨</div><div style="font-size:14px;">酒曲已成饼！</div>');
+        $('.drag-item').draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100 });
+    }
+    function handlePoundClick() { if(!mixedReady) { $level3Msg.html('❌ 先放原料入石臼。'); return; } if(poundCount<36) { poundCount++; $poundCounter.text(`杵数: ${poundCount} / 36`); if(poundCount===36) { kojiReady=true; $level3Msg.html('✅ 三千六百杵毕！酒曲已生成，拖到饼模。'); updateLevel3UI(); } else { $level3Msg.html(`🔨 捣杵 ${poundCount}/36`); updateLevel3UI(); } } else $level3Msg.html('✅ 已完成，请拖酒曲。'); }
+    function initLevel3Droppables() {
+        $('#mixerDrop').droppable({ accept: '.drag-item[data-type="powderForLevel3"], .drag-item[data-type="liquidForLevel3"]', drop: function(e,ui) { let t=ui.draggable.attr('data-type'); if(t==='powderForLevel3' && !resources.powder) { ui.draggable.remove(); resources.powder=true; $level3Msg.html('✅ 粉末已入石臼。还需药汁。'); } else if(t==='liquidForLevel3' && !resources.liquid) { ui.draggable.remove(); resources.liquid=true; $level3Msg.html('✅ 药汁已入石臼。还需粉末。'); } else { $level3Msg.html('❌ 已放过了。'); } if(resources.powder && resources.liquid) { mixedReady=true; $level3Msg.html('🌞 混合完成，太阳出！点击石杵36次。'); updateLevel3UI(); } else updateLevel3UI(); } });
+        $('#cakeMoldDrop').droppable({ accept: '.drag-item[data-type="koji"]', drop: function(e,ui) { if(kojiReady && !level3Completed) { ui.draggable.remove(); kojiDraggable=null; kojiReady=false; level3Completed=true; $level3Msg.html('🎉 第三关完成！点击“进入第四关”。'); updateLevel3UI(); $nextLevel4Btn.show(); } else $level3Msg.html('❌ 无效。'); } });
+    }
+    function resetLevel3() { resources={powder:false,liquid:false}; mixedReady=false; poundCount=0; hasSun=false; kojiReady=false; level3Completed=false; kojiDraggable=null; $nextLevel4Btn.hide(); updateLevel3UI(); $level3Msg.html('🔄 重置第三关。'); $mixerArea.find('.drag-item[data-type="koji"]').remove(); }
+
+    // ---------- 第四关逻辑（完整） ----------
+    let stackOrder = [], cakesLeft = 2, strawsLeft = 2;
+    const $level4Cakes = $('#level4CakesArea'), $level4Straw = $('#level4StrawArea'), $stackContainer = $('#stackContainer'), $level4Msg = $('#level4Msg');
+    function updateLevel4UI() {
+        $level4Cakes.empty(); for(let i=0;i<cakesLeft;i++) $level4Cakes.append($('<div>').addClass('drag-item').attr('data-cake',`cake${i}`).html('🍘<span class="item-text">曲饼</span>'));
+        $level4Straw.empty(); for(let i=0;i<strawsLeft;i++) $level4Straw.append($('<div>').addClass('drag-item').attr('data-straw',`straw${i}`).html('🌾<span class="item-text">麥稭</span><span class="small-text">厚二寸</span>'));
+        $stackContainer.empty(); $stackContainer.append('<div class="bed-layer">🛏️ 床</div>'); for(let item of stackOrder) $stackContainer.append(`<div class="stack-layer">${item==='cake'?'🍘 曲饼':'🌾 麥稭 (厚二寸)'}</div>`);
+        if(stackOrder.length===0) $stackContainer.append('<div style="color:#7a5a3a; margin:8px;">（空）</div>');
+        $('.drag-item').draggable({ revert: 'invalid', cursor: 'grab', helper: 'clone', zIndex: 100 });
+        const expectedOrder=['cake','straw','cake','straw'];
+        let completed=(stackOrder.length===4 && JSON.stringify(stackOrder)===JSON.stringify(expectedOrder) && cakesLeft===0 && strawsLeft===0);
+        if(completed && !level4Completed) { level4Completed=true; $level4Msg.html('🎉 第四关完成！点击下方“进入第五关”继续。🎉'); $('#finishGameBtn4').show(); } else if(!completed) { level4Completed=false; $('#finishGameBtn4').hide(); }
+    }
+    function initLevel4Droppables() {
+        $('#stackContainer').droppable({ accept: '.drag-item[data-cake], .drag-item[data-straw]', drop: function(e,ui) {
+            let $dragged=ui.draggable, isCake=$dragged.attr('data-cake')!==undefined, isStraw=$dragged.attr('data-straw')!==undefined;
+            const expectedNext=(stackOrder.length===0)?'cake':(stackOrder.length===1)?'straw':(stackOrder.length===2)?'cake':'straw';
+            if(isCake && cakesLeft>0 && expectedNext==='cake') { $dragged.remove(); cakesLeft--; stackOrder.push('cake'); $level4Msg.html('✅ 放好曲饼。下一步：放一层麥稭。'); updateLevel4UI(); }
+            else if(isStraw && strawsLeft>0 && expectedNext==='straw') { $dragged.remove(); strawsLeft--; stackOrder.push('straw'); if(stackOrder.length===2) $level4Msg.html('✅ 放好麥稭。下一步：放第二个曲饼。'); else if(stackOrder.length===3) $level4Msg.html('✅ 放好第二个曲饼。下一步：放第二层麥稭。'); else if(stackOrder.length===4) $level4Msg.html('✅ 全部堆叠完成！'); else $level4Msg.html('✅ 放好麥稭。'); updateLevel4UI(); }
+            else $level4Msg.html('❌ 顺序错误！重置');
+        } });
+    }
+    function resetLevel4() { stackOrder=[]; cakesLeft=2; strawsLeft=2; level4Completed=false; updateLevel4UI(); $level4Msg.html('🔄 重置第四关。请按顺序堆叠：曲饼→麥稭→曲饼→麥稭。床在最底下，往上叠加。'); $('#finishGameBtn4').hide(); }
+
+    // ---------- 第五关逻辑（等比例放大） ----------
+    let stage1Completed = false, day1Done=false, day2Done=false, day3Done=false, day4Done=false;
+    const $stage1=$('#stage1'), $stage2=$('#stage2'), $level5Msg=$('#level5Msg');
+    const $doorOpen=$('#doorOpen'), $windowOpen=$('#windowOpen');
+    const $day1Card=$('#day1Card'), $day2Card=$('#day2Card'), $day3Card=$('#day3Card'), $day4Card=$('#day4Card');
+
+    function checkStage1Complete() {
+        if($doorOpen.text().includes('关') && $windowOpen.text().includes('关')) {
+            stage1Completed=true; $('.weather-icon').hide(); $stage1.hide(); $stage2.show();
+            $level5Msg.html('门窗已关闭，风和日消失。进入四七日操作阶段。');
+        }
+    }
+    function bindLevel5Events() {
+        $doorOpen.off('click').on('click', function() { if(stage1Completed) return; if($doorOpen.find('span').text() === '开') { $doorOpen.html('🚪 <span>关</span>'); checkStage1Complete(); } });
+        $windowOpen.off('click').on('click', function() { if(stage1Completed) return; if($windowOpen.find('span').text() === '开') { $windowOpen.html('🪟 <span>关</span>'); checkStage1Complete(); } });
+        // 一七日：冷水打湿 + 翻转
+        $('#day1Area .drag-item[data-type="coldWaterForDay1"]').draggable({ revert:'invalid', cursor:'grab', helper:'clone', zIndex:100 });
+        $('#day1Area .drag-item[data-type="cakeForDay1"]').droppable({
+            accept: '.drag-item[data-type="coldWaterForDay1"]',
+            drop: function() {
+                if(day1Done) return;
+                $(this).html('💧🍘<span class="item-text">湿曲饼</span>').addClass('wet-cake');
+                $(this).removeClass('drag-item').removeAttr('data-type').css('cursor','default');
+                $level5Msg.html('一七日：已用冷水打湿曲饼。现在点击“翻之”按钮。');
+                $('#flipBtn').css('pointer-events','auto').off('click').on('click', function() {
+                    if(day1Done) return;
+                    day1Done=true;
+                    $level5Msg.html('一七日完成！进入二七日。');
+                    $day2Card.css('opacity',1);
+                    $('#day2Area').html(`<div class="drag-item" id="sideCake" data-type="cakeForDay2">🍘<span class="item-text">曲饼</span></div><div class="static-icon clickable-icon" id="sideBtn">⤵️ 侧之</div>`);
+                    $('#sideBtn').off('click').on('click', function() {
+                        if(day2Done) return;
+                        $('#sideCake').html('🍘 (侧)<span class="item-text">侧放</span>').removeClass('drag-item').css('cursor','default');
+                        day2Done=true;
+                        $level5Msg.html('二七日完成！进入三七日。');
+                        $day3Card.css('opacity',1);
+                        $('#day2Area').html(`<div class="drag-item" id="sideCakeForDay3" data-type="cakeForDay3">🍘<span class="item-text">侧饼</span></div>`);
+                        $('#sideCakeForDay3').draggable({ revert:'invalid', cursor:'grab', helper:'clone', zIndex:100 });
+                        $('#cageDrop').droppable({
+                            accept: '#sideCakeForDay3',
+                            drop: function() {
+                                if(day3Done) return;
+                                $('#sideCakeForDay3').remove();
+                                day3Done=true;
+                                $level5Msg.html('三七日完成！曲饼已入笼。进入四七日。');
+                                $day4Card.css('opacity',1);
+                                $('#day3Area').html(`<div class="drag-item" id="cakeFromCage" data-type="cakeForDay4">🍘<span class="item-text">笼中曲饼</span></div>`);
+                                $('#cakeFromCage').draggable({ revert:'invalid', cursor:'grab', helper:'clone', zIndex:100 });
+                                $('#sunDrop').droppable({
+                                    accept: '#cakeFromCage',
+                                    drop: function() {
+                                        if(day4Done) return;
+                                        $('#cakeFromCage').remove();
+                                        day4Done=true;
+                                        $level5Msg.html('🎉 第五关完成！所有步骤成功。点击“完成全部五关”按钮。🎉');
+                                        $('#finishGameBtn5').show();
+                                    }
+                                });
+                            }
+                        });
+                    });
+                });
+            }
+        });
+    }
+    function resetLevel5() {
+        stage1Completed=false; day1Done=false; day2Done=false; day3Done=false; day4Done=false;
+        $stage1.show(); $stage2.hide();
+        $doorOpen.html('🚪 <span>开</span>');
+        $windowOpen.html('🪟 <span>开</span>');
+        $('.weather-icon').show();
+        $('#day1Area').html(`<div class="drag-item" data-type="cakeForDay1">🍘<span class="item-text">曲饼</span></div><div class="drag-item" data-type="coldWaterForDay1">💧<span class="item-text">冷水</span></div><div class="static-icon clickable-icon" id="flipBtn">🔄 翻之</div>`);
+        $('#day2Area').html(`<div class="static-icon" id="sideCakePlaceholder" style="font-size:36px;">🍘 <span style="font-size:14px;">(未侧)</span></div><div class="static-icon clickable-icon" id="sideBtn" style="display:none;">⤵️ 侧之</div>`);
+        $('#day3Area').html(`<div class="static-icon" id="cageIcon" style="font-size:40px;">🏺 <span style="font-size:14px;">笼</span></div><div class="drop-zone" id="cageDrop">将曲饼拖入笼中</div>`);
+        $('#day4Area').html(`<div class="static-icon" id="sunIconLevel5" style="font-size:40px;">☀️ <span style="font-size:14px;">曝日</span></div><div class="drop-zone" id="sunDrop">将曲饼拖到太阳下</div>`);
+        $day1Card.css('opacity',1); $day2Card.css('opacity',0.5); $day3Card.css('opacity',0.5); $day4Card.css('opacity',0.5);
+        bindLevel5Events();
+        $level5Msg.html('第五关：先关闭门窗隔绝风日，然后依次完成一七日到四七日的操作。');
+        $('#finishGameBtn5').hide();
+    }
+
+    // 初始化所有关卡
+    renderLevel1(); initLevel1Droppables();
+    renderLevel2(); initLevel2Droppables();
+    initLevel3Droppables(); resetLevel3();
+    resetLevel2();
+    initLevel4Droppables(); resetLevel4();
+    resetLevel5();
+
+    $nextLevel2Btn.hide(); $nextLevel3Btn.hide(); $nextLevel4Btn.hide(); $nextLevel5Btn.hide();
+    $('#finishGameBtn4').hide(); $('#finishGameBtn5').hide();
+    $('#pestleIcon').on('click', handlePoundClick);
+
+    // 切换按钮
+    $nextLevel2Btn.on('click', function() { $level1.addClass('hide'); $level2.removeClass('hide'); $nextLevel2Btn.hide(); resetLevel2(); });
+    $nextLevel3Btn.on('click', function() { $level2.addClass('hide'); $level3.removeClass('hide'); $nextLevel3Btn.hide(); resetLevel3(); });
+    $nextLevel4Btn.on('click', function() { $level3.addClass('hide'); $level4.removeClass('hide'); $nextLevel4Btn.hide(); resetLevel4(); });
+    $nextLevel5Btn.on('click', function() { $level4.addClass('hide'); $level5.removeClass('hide'); $nextLevel5Btn.hide(); resetLevel5(); });
+    $('#backToLevel1Btn').on('click', function() { $level2.addClass('hide'); $level1.removeClass('hide'); resetLevel1(); $nextLevel2Btn.hide(); level1Completed=false; });
+    $('#backToLevel2Btn').on('click', function() { $level3.addClass('hide'); $level2.removeClass('hide'); resetLevel2(); $nextLevel3Btn.hide(); level2Completed=false; });
+    $('#backToLevel3Btn').on('click', function() { $level4.addClass('hide'); $level3.removeClass('hide'); resetLevel3(); $nextLevel4Btn.hide(); level3Completed=false; });
+    $('#backToLevel4Btn').on('click', function() { $level5.addClass('hide'); $level4.removeClass('hide'); resetLevel4(); $nextLevel5Btn.hide(); level4Completed=false; });
+    $('#finishGameBtn4').on('click', function() { $nextLevel5Btn.show(); $level4Msg.html('第四关完成，点击“进入第五关”继续。'); });
+    $('#finishGameBtn5').on('click', function() { 
+    alert('🏆 恭喜你完成了全部五关！完整再现了《齐民要术》中“大州白堕麴方”的完整工艺。结合《洛阳伽蓝记》的轶事，你已深刻理解刘白堕酒的文化与技术内涵。');
+    window.location.href = 'index2.html'; });// 跳转代码
+});
+</script>
+</body>
+</html>
